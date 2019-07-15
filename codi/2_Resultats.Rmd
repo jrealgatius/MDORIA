@@ -1,0 +1,94 @@
+---
+title: "MORTALITAT I HEMODIALISI"
+author: "Jordi Real"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+rm(list=ls())
+memory.size(max=40000)
+
+# Càrrega de libreries 
+library(compareGroups)
+
+# Carrega d'objectes
+
+load("output_MDORIA_v3.Rdata")
+
+
+```
+
+## Objectives and Hypotheses: 
+
+## OBJETIVOS
+
+OBJECTIUS DE L’ESTUDI.
+S'estudia la mortalitat i les seves causes en la grup de pacients amb diabetis amb i sense peu diabètic (descripció basal: Biomed Res Int. 2016;2016:7217586) en el seguiment a més de 5 anys, i la seva comparació amb la dels pacients sense diabetis en la població en tractament renal susbstitutiu amb hemodiàlisi del territori de Lleida. S'analitzaran els factors pronòstics. Com a objectius secundaris, s'investigaran també altres esdeveniments rellevants pel pacient: esdeveniments cardiovasculars, hospitalització, noves úlceres de peu diabètic, i amputacions.
+
+***
+
+# Descriptiu basal i per grups (N=220)   
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+export2md(T0.1, caption = "Característiques basals dels pacients globals (DM vs resta)")
+
+
+
+```
+
+
+***
+
+## Població Diabetica (n=85)
+
+```{r,message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+export2md(T1.2, caption = "Característiques segons Peu diabetic (Úlcera o amputació)")
+
+export2md(T1.3, caption = "Característiques segons antecedents arteriopatia perifèrica")
+
+
+```
+
+
+# Incidencia acumulada d'events per grups  ----------------- 
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+
+export2md(T2.2, caption = "Events per grups: Peu diabetic (Úlcera / amputació)")
+
+export2md(T2.3, caption = "Events per grups: Peu diabetic (Artper)")
+
+```
+
+
+# Mortalitat durant el seguiment per característiques basals (Total població)
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+
+export2md(T3.1, caption = "Mortalitat segons característiques basals (IA i HR)")
+
+
+```
+
+# Event CV durant el seguiment per característiques basals (Total població)
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+export2md(T3.2, caption = "ECV segons característiques basals (IA i HR)")
+
+```
+
+
+
+

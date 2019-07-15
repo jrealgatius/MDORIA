@@ -1,4 +1,4 @@
-#           An�lisis Montse Doria         ------------
+#           An?lisis Montse Doria         ------------
 
 memory.size(max=160685)
 
@@ -24,10 +24,6 @@ directori.arrel[file.exists(directori.arrel)] %>%
 # DIRECTORI DE TREBALL          -------------------    
 # setwd en directori de treball 
 library(dplyr)
-
-"CIBERDEM/MDORIA" %>% 
-  directori_treball(directori.arrel)
-
 
 #  Parametres --------------
 
@@ -206,8 +202,51 @@ dades<-dades %>%
                                amputacions!="NO"~"Si",
                              TRUE~"No"))
 
+# Construir/identificar events: 1. Mortalitat CV / 2.ECV (Event CV) / 3.  MACE (Mortalitat o Event CV) / 4. Ulcera o amputacio / 5. Hospitalitzacio ------
+
+# 1. Mortalitat CV: exitusCV / exitusCV_surv
+dades<-dades %>% mutate(exitusCV=ifelse(motiu_exitus=="CARDIOVASCULAR","Si","No"))
+dades$exitusCV_surv<-Surv(dades$temps_seguiment,as.integer(dades$motiu_exitus=="CARDIOVASCULAR"))
+# Verificació
+descrTable(exitusCV~EV_CV+motiu_exitus,data=dades,show.p.overall = F)
+
+# 2. 2.ECV (Event CV) (Confirmar quins events: EV_IC, EV_CV etc..??)
+dades<-dades %>% mutate (EV_CardV=if_else(EV_IC=="Si" | EV_CV=="Si","Si","No"))
+# verificacio
+descrTable(EV_CardV~EV_IC + EV_CV,data=dades, show.p.overall = F)
+# Calculo el temps_fins_EVCardVs
+dades<-dades %>% mutate(temps_fins_EVCardV=pmin(temps_fins_IC,temps_fins_CV)) 
+# Surv
+dades$EV_CardV_surv<-Surv(dades$temps_fins_EVCardV,as.integer(dades$EV_CardV=="Si"))
+
+# 3. 3.  MACE (Mortalitat CV o Event CV)
+dades<-dades %>% mutate (EV_MACE=if_else(EV_CardV=="Si" | exitusCV=="Si","Si","No"))
+# verificacio
+descrTable(EV_MACE~EV_CardV + exitusCV,data=dades, show.p.overall = F)
+# Calculo el temps_MACE
+dades<-dades %>% mutate(temps_fins_MACE=pmin(temps_fins_EVCardV,temps_seguiment)) 
+
+# 4. Ulcera o amputacio (EV_ULCERES | EV_AMP_MENOR | EV_AMP_MAJOR)
+dades<-dades %>% mutate (EV_ULC_AMP=if_else(EV_ULCERES=="Si" | EV_AMP_MENOR=="Si" | EV_AMP_MAJOR=="Si","Si","No"))
+# Calculo el temps_ulcera/temps
+dades<-dades %>% mutate(temps_fins_ULCAMP=pmin(temps_fins_AMPMAJOR,temps_fins_AMPMENOR,temps_fins_ULCER)) 
+# verificacio
+descrTable(EV_ULC_AMP~EV_ULCERES + EV_AMP_MENOR + EV_AMP_MAJOR,data=dades, show.p.overall = F)
+# Calculo Surv
+dades$EV_ULC_AMP_surv<-Surv(dades$temps_fins_ULCAMP,as.integer(dades$EV_ULC_AMP=="Si"))
 
 
+# 5. Hospitalització (No trobo la variable)
+
+
+
+
+
+
+
+
+
+# 
 # FI PREPARACIÓ       -------------
 
 # INICI ANALISIS      -------------

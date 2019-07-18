@@ -6,20 +6,11 @@ memory.size(max=160685)
 
 rm(list=ls())
 ###
-directori.arrel<-c("C:/Users/Jordi/Google Drive", 
-                   "C:/Users/usuari/Google Drive",
-                   "C:/Users/43728088M/Google Drive",
-                   "C:/Users/jreal/Google Drive",
-                   "D:/Google Drive",
-                   "G:/Google Drive",
-                   "E:/Google Drive")
-
 library("dplyr")
 
+link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
+devtools::source_url(link_source)
 
-directori.arrel[file.exists(directori.arrel)] %>% 
-  file.path("Stat_codis/funcions_propies.R") %>% 
-  source()
 
 # DIRECTORI DE TREBALL          -------------------    
 # setwd en directori de treball 
@@ -204,49 +195,43 @@ dades<-dades %>%
 
 # Construir/identificar events: 1. Mortalitat CV / 2.ECV (Event CV) / 3.  MACE (Mortalitat o Event CV) / 4. Ulcera o amputacio / 5. Hospitalitzacio ------
 
-# 1. Mortalitat CV: exitusCV / exitusCV_surv
-dades<-dades %>% mutate(exitusCV=ifelse(motiu_exitus=="CARDIOVASCULAR","Si","No"))
+# 1. Mortalitat CV: exitusCV / exitusCV_surv --------------
+dades<-dades %>% mutate(exitusCV=if_else(motiu_exitus=="CARDIOVASCULAR","Si","No"),
+                        exitusCV=if_else(is.na(exitusCV),"No",exitusCV))
+
 dades$exitusCV_surv<-Surv(dades$temps_seguiment,as.integer(dades$motiu_exitus=="CARDIOVASCULAR"))
 # Verificació
-descrTable(exitusCV~EV_CV+motiu_exitus,data=dades,show.p.overall = F)
+descrTable(exitusCV~EV_CV+motiu_exitus,data=dades,show.p.overall = F,show.all = T)
 
-# 2. 2.ECV (Event CV) (Confirmar quins events: EV_IC, EV_CV etc..??)
-dades<-dades %>% mutate (EV_CardV=if_else(EV_IC=="Si" | EV_CV=="Si","Si","No"))
-# verificacio
-descrTable(EV_CardV~EV_IC + EV_CV,data=dades, show.p.overall = F)
-# Calculo el temps_fins_EVCardVs
-dades<-dades %>% mutate(temps_fins_EVCardV=pmin(temps_fins_IC,temps_fins_CV)) 
-# Surv
+# 2. EV_CardV (Event CardV) ----------------
+# (Events considerats: EV_CI, EV_CV, EV_ART_PER, EV_ISQ_MESENTERICA, EV_COLITIS_ISQ)
+dades<-dades %>% mutate (EV_CardV=if_else(EV_CI=="Si" | EV_CV=="Si" | EV_ART_PER=="Si" | EV_ISQ_MESENTERICA=="Si" | EV_COLITIS_ISQ=="Si" ,"Si","No"))
+dades<-dades %>% mutate(temps_fins_EVCardV=pmin(temps_fins_CI,temps_fins_CV,temps_fins_ARTPER,temps_fins_ISQ_MESE,temps_fins_COLITIS_ISQ,temps_seguiment))
 dades$EV_CardV_surv<-Surv(dades$temps_fins_EVCardV,as.integer(dades$EV_CardV=="Si"))
 
-# 3. 3.  MACE (Mortalitat CV o Event CV)
-dades<-dades %>% mutate (EV_MACE=if_else(EV_CardV=="Si" | exitusCV=="Si","Si","No"))
-# verificacio
-descrTable(EV_MACE~EV_CardV + exitusCV,data=dades, show.p.overall = F)
-# Calculo el temps_MACE
-dades<-dades %>% mutate(temps_fins_MACE=pmin(temps_fins_EVCardV,temps_seguiment)) 
+# Verificacio
+descrTable(EV_CardV~EV_CI+EV_CV+EV_ART_PER+EV_ISQ_MESENTERICA+EV_COLITIS_ISQ,data=dades,show.p.overall = F,show.all = T)
 
-# 4. Ulcera o amputacio (EV_ULCERES | EV_AMP_MENOR | EV_AMP_MAJOR)
+# 3. MACE (Mortalitat CV o Event CV) ----------------
+dades<-dades %>% mutate (EV_MACE=if_else(EV_CV=="Si" | EV_CI=="Si" | exitusCV=="Si","Si","No"),
+                         EV_MACE=if_else(is.na(EV_MACE),"No",EV_MACE))
+# Temps 
+dades<-dades %>% mutate (temps_fins_MACE=pmin(temps_fins_CV,temps_fins_CI,temps_seguiment))
+# Surv
+dades$EV_MACE_surv<-Surv(dades$temps_fins_MACE,as.integer(dades$EV_MACE=="Si"))
+# Verificacio
+descrTable(~EV_MACE+EV_MACE_surv,data=dades)
+
+# 4. Ulcera o amputacio (EV_ULCERES | EV_AMP_MENOR | EV_AMP_MAJOR) -----
 dades<-dades %>% mutate (EV_ULC_AMP=if_else(EV_ULCERES=="Si" | EV_AMP_MENOR=="Si" | EV_AMP_MAJOR=="Si","Si","No"))
 # Calculo el temps_ulcera/temps
-dades<-dades %>% mutate(temps_fins_ULCAMP=pmin(temps_fins_AMPMAJOR,temps_fins_AMPMENOR,temps_fins_ULCER)) 
-# verificacio
-descrTable(EV_ULC_AMP~EV_ULCERES + EV_AMP_MENOR + EV_AMP_MAJOR,data=dades, show.p.overall = F)
+dades<-dades %>% mutate(temps_fins_ULCAMP=pmin(temps_fins_AMPMAJOR,temps_fins_AMPMENOR,temps_fins_ULCER,temps_seguiment)) 
 # Calculo Surv
 dades$EV_ULC_AMP_surv<-Surv(dades$temps_fins_ULCAMP,as.integer(dades$EV_ULC_AMP=="Si"))
 
 
 # 5. Hospitalització (No trobo la variable)
 
-
-
-
-
-
-
-
-
-# 
 # FI PREPARACIÓ       -------------
 
 # INICI ANALISIS      -------------
@@ -258,7 +243,7 @@ dades<-etiquetar(dades,conductor_variables)
 # Selecciono DMs 
 dadestotal<-dades
 
-dades<-dades %>% filter(diabetes=="Si" | diabetes=="Si")
+dades<-dades %>% filter(diabetes=="Si")
 
 # Descriptiva baseline 0 DM vs No DM
 formu<-formula_compare(x="baseline",y="diabetes",taulavariables = conductor_variables)
@@ -273,11 +258,15 @@ T1.2<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
 formu<-formula_compare(x="baseline",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)
 T1.3<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
 
-
 # Seguiment Incidencia acumulada d'events per grups  ----------------- 
 # Seguiment Incidencia acumulada x Peu diabetic (Peu diabetic (Úlcera / amputació)) 
 formu<-formula_compare(x="events",y="peu_diab2",taulavariables = conductor_variables)
 T2.2<-descrTable(formu,data=dades,show.p.overall = T)
+
+
+
+
+
 
 # Seguiment Incidencia acumulada x Artper )  
 formu<-formula_compare(x="events",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)

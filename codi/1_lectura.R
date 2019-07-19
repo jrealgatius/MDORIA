@@ -199,7 +199,7 @@ dades<-dades %>%
 dades<-dades %>% mutate(exitusCV=if_else(motiu_exitus=="CARDIOVASCULAR","Si","No"),
                         exitusCV=if_else(is.na(exitusCV),"No",exitusCV))
 
-dades$exitusCV_surv<-Surv(dades$temps_seguiment,as.integer(dades$motiu_exitus=="CARDIOVASCULAR"))
+dades$exitusCV_surv<-Surv(dades$temps_seguiment,as.integer(dades$exitusCV=="No"))
 # Verificació
 descrTable(exitusCV~EV_CV+motiu_exitus,data=dades,show.p.overall = F,show.all = T)
 
@@ -232,6 +232,8 @@ dades$EV_ULC_AMP_surv<-Surv(dades$temps_fins_ULCAMP,as.integer(dades$EV_ULC_AMP=
 
 # 5. Hospitalització (No trobo la variable)
 
+
+
 # FI PREPARACIÓ       -------------
 
 # INICI ANALISIS      -------------
@@ -251,6 +253,11 @@ T0.1<-descrTable(formu,data=dadestotal,show.p.overall = F,max.ylev=Inf,show.n = 
 
 # Ulcera vs no Ulcera
 # Descriptiva baseline  2 (Peu diabetic II) 
+
+formu<-formula_compare(x="baseline",y="",taulavariables = conductor_variables)
+T1.1<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
+
+
 formu<-formula_compare(x="baseline",y="peu_diab2",taulavariables = conductor_variables)
 T1.2<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
 
@@ -260,30 +267,113 @@ T1.3<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
 
 # Seguiment Incidencia acumulada d'events per grups  ----------------- 
 # Seguiment Incidencia acumulada x Peu diabetic (Peu diabetic (Úlcera / amputació)) 
-formu<-formula_compare(x="events",y="peu_diab2",taulavariables = conductor_variables)
-T2.2<-descrTable(formu,data=dades,show.p.overall = T)
-
-
-
-
+formu<-formula_compare(x="events_principals",y="peu_diab2",taulavariables = conductor_variables)
+T2.2<-descrTable(formu,data=dades,show.p.overall = T,timemax = 1825)
 
 
 # Seguiment Incidencia acumulada x Artper )  
-formu<-formula_compare(x="events",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)
-T2.3<-descrTable(formu,data=dades,show.p.overall = T)
+formu<-formula_compare(x="events_principals",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)
+T2.3<-descrTable(formu,data=dades,show.p.overall = T,timemax = 1825)
 
 
-# Mortalitat x Baseline  --------
-formu<-formula_compare(x="baseline",y="exitus_surv",taulavariables = conductor_variables)
+# Mortalitat CV  x Baseline  --------
+formu<-formula_compare(x="baseline",y="exitusCV_surv",taulavariables = conductor_variables)
 T3.1<-descrTable(formu,data=dades,show.p.overall = T,show.ratio = T,byrow = T)
 
 # Event CV x Baseline -------------
-formu<-formula_compare(x="baseline",y="CV_surv",taulavariables = conductor_variables)
+formu<-formula_compare(x="baseline",y="EV_CardV_surv",taulavariables = conductor_variables)
 T3.2<-descrTable(formu,data=dades,show.p.overall = T,show.ratio = T,byrow = T)
 
 
+# Taula dincidencia d'events ---------------
+formula<-formula_compare("events_principals",y="peu_diab2",taulavariables = conductor_variables)
+descrTable(formula,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
 
-save.image("output_MDORIA_v3.Rdata")
+descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
+
+
+#  3 Taula de HR -----
+descrTable(exitusCV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
+descrTable(EV_CardV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
+descrTable(EV_MACE_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
+descrTable(EV_ULC_AMP_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
+
+# Curves de supervivencia d'esdeveniments ----
+
+llegenda=c("No","Si")
+
+# MCV -----------------
+titol<-"Mortalitat cardiovascular"
+
+# Basic survival curves
+MCV_PLOTKM<-survminer::ggsurvplot(survfit(exitusCV_surv ~ peu_diab2, data = dades), data = dades,
+                      main = "Survival curve",
+                      title= titol,
+                      size = 0.5,
+                      ylim = c(0,1),
+                      xlim = c(0,1825),
+                      break.x.by=365,
+                      xlab = "Time in days",
+                      risk.table = F,
+                      censor.shape="|", censor.size = 1,
+                      legend.labs=llegenda,
+                      ggtheme = theme_bw())
+
+
+# ECV -----------------
+titol<-"Event Cardiovascular"
+
+# Basic survival curves
+ECV_PLOTKM<-survminer::ggsurvplot(survfit(EV_CardV_surv ~ peu_diab2, data = dades), data = dades,
+                      main = "Survival curve",
+                      title= titol,
+                      size = 0.5,
+                      ylim = c(0,1),
+                      xlim = c(0,1825),
+                      break.x.by=365,
+                      xlab = "Time in days",
+                      risk.table = F,
+                      censor.shape="|", censor.size = 1,
+                      legend.labs=llegenda,
+                      ggtheme = theme_bw())
+
+# MACE  -----------------
+titol<-"MACE"
+
+# Basic survival curves
+MACE_PLOTKM<-survminer::ggsurvplot(survfit(EV_MACE_surv ~ peu_diab2, data = dades), data = dades,
+                      main = "Survival curve",
+                      title= titol,
+                      size = 0.5,
+                      ylim = c(0,1),
+                      xlim = c(0,1825),
+                      break.x.by=365,
+                      xlab = "Time in days",
+                      risk.table = F,
+                      censor.shape="|", censor.size = 1,
+                      legend.labs=llegenda,
+                      ggtheme = theme_bw())
+
+# Ulcera/Ampucació -----------------
+titol<-"Ulcera/Ampucació"
+
+# Basic survival curves
+ulcera_PLOTKM<-survminer::ggsurvplot(survfit(EV_ULC_AMP_surv ~ peu_diab2, data = dades), data = dades,
+                      main = "Survival curve",
+                      title= titol,
+                      size = 0.5,
+                      ylim = c(0,1),
+                      xlim = c(0,1825),
+                      break.x.by=365,
+                      xlab = "Time in days",
+                      risk.table = F,
+                      censor.shape="|", censor.size = 1,
+                      legend.labs=llegenda,
+                      ggtheme = theme_bw())
+
+
+
+save.image("output/output_MDORIA_v4.Rdata")
 
 
 

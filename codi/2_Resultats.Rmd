@@ -5,6 +5,7 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
     df_print: paged
+    toc: TRUE
   word_document: default
 ---
 
@@ -13,28 +14,28 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 rm(list=ls())
-memory.size(max=40000)
+# memory.size(max=40000)
 
-# Càrrega de libreries 
+#  libreries 
 library(compareGroups)
+library(here)
+library(rlang)
+library(dplyr)
 
-# Carrega d'objectes
-
-load("output_MDORIA_v3.Rdata")
+load(here::here("output","output_MDORIA_v4.Rdata"))
 
 
 ```
 
-## Objectives and Hypotheses: 
+# Objectius
 
-## OBJETIVOS
-
-OBJECTIUS DE L’ESTUDI.
 S'estudia la mortalitat i les seves causes en la grup de pacients amb diabetis amb i sense peu diabètic (descripció basal: Biomed Res Int. 2016;2016:7217586) en el seguiment a més de 5 anys, i la seva comparació amb la dels pacients sense diabetis en la població en tractament renal susbstitutiu amb hemodiàlisi del territori de Lleida. S'analitzaran els factors pronòstics. Com a objectius secundaris, s'investigaran també altres esdeveniments rellevants pel pacient: esdeveniments cardiovasculars, hospitalització, noves úlceres de peu diabètic, i amputacions.
 
 ***
 
-# Descriptiu basal i per grups (N=220)   
+# Descriptiu basal i per grups 
+
+## Població general (N=220)   
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
@@ -47,19 +48,32 @@ export2md(T0.1, caption = "Característiques basals dels pacients globals (DM vs
 
 ***
 
-## Població Diabetica (n=85)
+## Població diabetica (N=85)   
+
+>Descriptiu de la població diabetica global i per grups (n=85)
 
 ```{r,message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T1.2, caption = "Característiques segons Peu diabetic (Úlcera o amputació)")
+export2md(T1.1, caption = "Característiques basals segons Peu diabetic (Úlcera o amputació)")
 
-export2md(T1.3, caption = "Característiques segons antecedents arteriopatia perifèrica")
+export2md(T1.2, caption = "Característiques basals segons Peu diabetic (Úlcera o amputació)")
+
+export2md(T1.3, caption = "Característiques basals segons antecedents arteriopatia perifèrica")
 
 
 ```
 
 
-# Incidencia acumulada d'events per grups  ----------------- 
+# Frequencia d'events principals
+
+Llistat d'events: 
+
+1.Mortalitat CV 
+2.Event Cardiovascular (EV_CI, EV_CV, EV_ART_PER, EV_ISQ_MESENTERICA, EV_COLITIS_ISQ)
+3.MACE (EV_CV or EV_CI or exitusCV)
+4.Ulcera o amputacio 
+5. Hospitalitzacio (?)
+
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
@@ -71,7 +85,7 @@ export2md(T2.3, caption = "Events per grups: Peu diabetic (Artper)")
 ```
 
 
-# Mortalitat durant el seguiment per característiques basals (Total població)
+# Mortalitat CV durant el seguiment segons característiques basals
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
@@ -81,7 +95,9 @@ export2md(T3.1, caption = "Mortalitat segons característiques basals (IA i HR)"
 
 ```
 
-# Event CV durant el seguiment per característiques basals (Total població)
+# Esdeveniment CV durant el seguiment segons característiques basals
+
+Events considerats: CI, CV, ART_PER, ISQ_MESENTERICA, COLITIS_ISQ
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
@@ -90,5 +106,47 @@ export2md(T3.2, caption = "ECV segons característiques basals (IA i HR)")
 ```
 
 
+# Events principals segons peu diabetic
+
+## Taula dincidencia d'events
+## Taula de HR i significació estadística
+
+
+```{r HR_EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+# Taula dincidencia d'events ---------------
+formula<-formula_compare("events_principals",y="peu_diab2",taulavariables = here(conductor_variables))
+
+taula4.1<-descrTable(formula,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
+export2md(taula4.1)
+
+taula4.2<-descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
+export2md(taula4.2)
+
+
+#  3 Taula de HR -----
+descrTable(exitusCV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
+descrTable(EV_CardV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
+descrTable(EV_MACE_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
+descrTable(EV_ULC_AMP_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
+
+
+```
+
+# Curves de KM de cada event per peu diabètic
+
+```{r curvesKM, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+MCV_PLOTKM
+
+ECV_PLOTKM
+
+MACE_PLOTKM
+
+MCV_PLOTKM
+
+ulcera_PLOTKM
+
+```
 
 

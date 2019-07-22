@@ -1,30 +1,22 @@
-#           An?lisis Montse Doria         ------------
+# Analisis Montse Doria         ------------
 
 memory.size(max=160685)
 
-# Directori Font     ==============================  
-
+# Carrega de funcions / llibreries -------------  
 rm(list=ls())
-###
 library("dplyr")
+library(rlang)
+library(compareGroups)
 
 link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
 devtools::source_url(link_source)
 
-
-# DIRECTORI DE TREBALL          -------------------    
-# setwd en directori de treball 
-library(dplyr)
-
-#  Parametres --------------
-
+# Parametres --------------
 fitxer_dades<-"mortalitathemodialisi_24052019.xls"
-
 conductor_variables<-"taulavariables_v5.xls"
 
 # Llegir dades ----------------
 dades<-readxl::read_excel(fitxer_dades)
-
 
 # Arreglar noms de variables ------------------
 dades<-netejar.noms.variables(dades)
@@ -37,18 +29,17 @@ dades<-dades %>% mutate (any_dX_dm=ifelse(any_dX_dm==0 | any_dX_dm==1 ,NA,any_dX
 
 # Convertir dates camps dates 
 # Convertir dates UTC a Rdata 
-library(rlang)
+
 camps_dates<-extreure.variables(taula="dates",taulavariables = conductor_variables)
 
 dades<-dataUTC_to_Rdata(camps_dates,dades)
 
-
-#  Etiquetes  -------------------
+# Etiquetació  -------------------
 dades<-etiquetar_valors(dt=dades,variables_factors=conductor_variables,fulla="etiquetes",camp_etiqueta="etiqueta")
 dades<-etiquetar(dades, taulavariables=conductor_variables)
 
 # Analisis exploratori -------------------
-library(compareGroups)
+
 T1<-descrTable(~.-ID,dades,show.p.overall = F,method = 2,Q1 = 0, Q3 = 1,max.ylev=Inf)
 
 # Calculo Surv mortalitat ------
@@ -193,7 +184,9 @@ dades<-dades %>%
                                amputacions!="NO"~"Si",
                              TRUE~"No"))
 
-# Construir/identificar events: 1. Mortalitat CV / 2.ECV (Event CV) / 3.  MACE (Mortalitat o Event CV) / 4. Ulcera o amputacio / 5. Hospitalitzacio ------
+# Construir/identificar events: ------------- 
+
+# 1. Mortalitat CV / 2.ECV (Event CV) / 3.  MACE (Mortalitat o Event CV) / 4. Ulcera o amputacio / 5. Hospitalitzacio ------
 
 # 1. Mortalitat CV: exitusCV / exitusCV_surv --------------
 dades<-dades %>% mutate(exitusCV=if_else(motiu_exitus=="CARDIOVASCULAR","Si","No"),
@@ -231,7 +224,6 @@ dades$EV_ULC_AMP_surv<-Surv(dades$temps_fins_ULCAMP,as.integer(dades$EV_ULC_AMP=
 
 
 # 5. Hospitalització (No trobo la variable)
-
 
 
 # FI PREPARACIÓ       -------------
@@ -357,7 +349,7 @@ MACE_PLOTKM<-survminer::ggsurvplot(survfit(EV_MACE_surv ~ peu_diab2, data = dade
 # Ulcera/Ampucació -----------------
 titol<-"Ulcera/Ampucació"
 
-# Basic survival curves
+# Basic survival curves -------------
 ulcera_PLOTKM<-survminer::ggsurvplot(survfit(EV_ULC_AMP_surv ~ peu_diab2, data = dades), data = dades,
                       main = "Survival curve",
                       title= titol,
@@ -372,6 +364,72 @@ ulcera_PLOTKM<-survminer::ggsurvplot(survfit(EV_ULC_AMP_surv ~ peu_diab2, data =
                       ggtheme = theme_bw())
 
 
+
+# Analisis de supervivencia lliure d'esdeveniments RISCOS COMPETITIUS  -------------
+
+
+
+
+### Model de riscos competitius tractant mortalitat global com a event competitiu de la resta d'events
+
+
+table(dades$exitus,dades$exitusCV)
+table(dades$exitus)
+table(dades$exitusCV)
+
+
+# Generar status (tipo de censuras) ----
+dades<-dades %>% mutate(status=case_when(exitusCV=="Si" ~"MCV",
+                                         exitusCV=="No" & exitus=="Si"~"Mortality",
+                                         exitusCV=="No" & exitus=="No"~"Censored")) 
+
+# Metode Comparegroups (K-M)
+descrTable(peu_diab2~exitusCV_surv+exitusCV,data=dades,show.ratio = T)
+
+
+# Cox model 
+coxph(formula = exitusCV_surv ~ peu_diab2, data = dades) %>% summary()
+
+
+
+grup<-matrix(as.numeric(dades$peu_diab2=="Si"))
+
+
+# Codificar riscos competitius 
+model_Riscos<-cmprsk::crr(ftime=dades$temps_seguiment,
+                          fstatus=dades$status,
+                          cov1=grup , #  matrix (nobs x ncovs) of fixed covariates
+                          failcode = "MCV", # code of fstatus that denotes the failure type of interest
+                          cencode = "Censored") # code of fstatus that denotes censored observations
+
+summary(model_Riscos)
+
+summaryHR.FGR(model_Riscos)
+
+summaryHR.FGR <- function(model, level = 0.95){
+  
+  tab <- summary(model)$coef
+  x <- round(cbind("beta" = tab[, 1], 
+                   "SE" = tab[, 3], 
+                   "z-value" = tab[, 4], 
+                   "p-value" = tab[, 5], 
+                   "HR" = tab[, 2],
+                   "LB" = exp(tab[, 1] - qnorm(1 - (1-level)/2)*tab[, 3]),
+                   "UB" = exp(tab[, 1] + qnorm(1 - (1-level)/2)*tab[, 3])), 4)
+  colnames(x) <- c("Estimate", "SE", "z-value", "p-value", "HR", paste0("LB(", round(100*level, 0), "% CI)"), paste0("UB(", round(100*level, 0), "% CI)"))
+  rownames(x) <- rownames(tab)
+  return(x)
+}
+
+
+
+
+
+
+
+
+
+# Salvar objectes -------------
 
 save.image("output/output_MDORIA_v4.Rdata")
 

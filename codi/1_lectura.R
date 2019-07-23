@@ -192,7 +192,7 @@ dades<-dades %>%
 dades<-dades %>% mutate(exitusCV=if_else(motiu_exitus=="CARDIOVASCULAR","Si","No"),
                         exitusCV=if_else(is.na(exitusCV),"No",exitusCV))
 
-dades$exitusCV_surv<-Surv(dades$temps_seguiment,as.integer(dades$exitusCV=="No"))
+dades$exitusCV_surv<-Surv(dades$temps_seguiment,as.integer(dades$exitusCV=="Si"))
 # Verificació
 descrTable(exitusCV~EV_CV+motiu_exitus,data=dades,show.p.overall = F,show.all = T)
 
@@ -249,7 +249,6 @@ T0.1<-descrTable(formu,data=dadestotal,show.p.overall = F,max.ylev=Inf,show.n = 
 formu<-formula_compare(x="baseline",y="",taulavariables = conductor_variables)
 T1.1<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
 
-
 formu<-formula_compare(x="baseline",y="peu_diab2",taulavariables = conductor_variables)
 T1.2<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
 
@@ -292,141 +291,96 @@ descrTable(EV_ULC_AMP_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
 
 # Curves de supervivencia d'esdeveniments ----
 
-llegenda=c("No","Si")
+# Funció que Retorna curva K-M -------
+plotKM_doria<-function(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular",grup="peu_diab2") {
 
-# MCV -----------------
-titol<-"Mortalitat cardiovascular"
-
-# Basic survival curves
-MCV_PLOTKM<-survminer::ggsurvplot(survfit(exitusCV_surv ~ peu_diab2, data = dades), data = dades,
-                      main = "Survival curve",
-                      title= titol,
-                      size = 0.5,
-                      ylim = c(0,1),
-                      xlim = c(0,1825),
-                      break.x.by=365,
-                      xlab = "Time in days",
-                      risk.table = F,
-                      censor.shape="|", censor.size = 1,
-                      legend.labs=llegenda,
-                      ggtheme = theme_bw())
-
-
-# ECV -----------------
-titol<-"Event Cardiovascular"
-
-# Basic survival curves
-ECV_PLOTKM<-survminer::ggsurvplot(survfit(EV_CardV_surv ~ peu_diab2, data = dades), data = dades,
-                      main = "Survival curve",
-                      title= titol,
-                      size = 0.5,
-                      ylim = c(0,1),
-                      xlim = c(0,1825),
-                      break.x.by=365,
-                      xlab = "Time in days",
-                      risk.table = F,
-                      censor.shape="|", censor.size = 1,
-                      legend.labs=llegenda,
-                      ggtheme = theme_bw())
-
-# MACE  -----------------
-titol<-"MACE"
-
-# Basic survival curves
-MACE_PLOTKM<-survminer::ggsurvplot(survfit(EV_MACE_surv ~ peu_diab2, data = dades), data = dades,
-                      main = "Survival curve",
-                      title= titol,
-                      size = 0.5,
-                      ylim = c(0,1),
-                      xlim = c(0,1825),
-                      break.x.by=365,
-                      xlab = "Time in days",
-                      risk.table = F,
-                      censor.shape="|", censor.size = 1,
-                      legend.labs=llegenda,
-                      ggtheme = theme_bw())
-
-# Ulcera/Ampucació -----------------
-titol<-"Ulcera/Ampucació"
-
-# Basic survival curves -------------
-ulcera_PLOTKM<-survminer::ggsurvplot(survfit(EV_ULC_AMP_surv ~ peu_diab2, data = dades), data = dades,
-                      main = "Survival curve",
-                      title= titol,
-                      size = 0.5,
-                      ylim = c(0,1),
-                      xlim = c(0,1825),
-                      break.x.by=365,
-                      xlab = "Time in days",
-                      risk.table = F,
-                      censor.shape="|", censor.size = 1,
-                      legend.labs=llegenda,
-                      ggtheme = theme_bw())
+  # dt=dades
+  # titol<-"Mortalitat cardiovascular"
+  # event="exitusCV"
+  # grup="peu_diab2"
+  # temps="temps_seguiment"
+  
+  event<-sym(event)
+  grup_sym<-sym(grup)
+  temps<-sym(temps)
+  
+  dt <- dt %>% select(event=!!event,temps=!!temps,grup=!!grup_sym) 
+  
+  llegenda=c("No","Si")
+  # Basic survival curves
+  survminer::ggsurvplot(survfit(Surv(temps,as.integer(event=="Si"))~grup,data=dt), data = dt,
+                                    main = "Survival curve",
+                                    title= titol,
+                                    size = 0.5,
+                                    ylim = c(0,1),
+                                    xlim = c(0,1825),
+                                    break.x.by=365,
+                                    xlab = "Time in days",
+                                    risk.table = F,
+                                    censor.shape="|", censor.size = 1,
+                                    legend.labs=llegenda,
+                                    ggtheme = theme_bw())
+  }
 
 
+# PlotsKM ------
+plotKM_doria(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular")
+plotKM_doria(dt=dades,event="EV_CardV",temps="temps_fins_EVCardV",titol="Event cardiovascular")
+plotKM_doria(dt=dades,event="EV_MACE",temps="temps_fins_MACE",titol="MACE")
+plotKM_doria(dt=dades,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera/Amputació")
 
 # Analisis de supervivencia lliure d'esdeveniments RISCOS COMPETITIUS  -------------
+# Funció Riscos competitius Fine & Grey ------------------
+# Donat un event, temps de seguiment, grup, eventcompetitiu retorna tibble:
+# Beta, SE, p-value, HR, Li95%CI, Ls95%CI
 
+extreure_HRFG=function(event="exitusCV",temps="temps_seguiment",grup="peu_diab2",eventcompetitiu="exitus",dt=dades){
 
+# event="exitusCV"
+# temps="temps_seguiment"
+event<-sym(event)
+temps<-sym(temps)
+grup<-sym(grup)
+eventcompetitiu<-sym(eventcompetitiu)
 
+# Selecciono variables necessaries
+dt<-dt %>% select(grup=!!grup,exitus=!!eventcompetitiu,temps=!!temps,event=!!event)
 
-### Model de riscos competitius tractant mortalitat global com a event competitiu de la resta d'events
+# Generar variable status (tipo de censuras) ----
+dt<-dt %>% mutate(status=case_when(event=="Si" ~"event",
+                                         event=="No" & exitus=="Si"~"Mortality",
+                                         event=="No" & exitus=="No"~"Censored")) 
 
-
-table(dades$exitus,dades$exitusCV)
-table(dades$exitus)
-table(dades$exitusCV)
-
-
-# Generar status (tipo de censuras) ----
-dades<-dades %>% mutate(status=case_when(exitusCV=="Si" ~"MCV",
-                                         exitusCV=="No" & exitus=="Si"~"Mortality",
-                                         exitusCV=="No" & exitus=="No"~"Censored")) 
-
-# Metode Comparegroups (K-M)
-descrTable(peu_diab2~exitusCV_surv+exitusCV,data=dades,show.ratio = T)
-
-
-# Cox model 
-coxph(formula = exitusCV_surv ~ peu_diab2, data = dades) %>% summary()
-
-
-
-grup<-matrix(as.numeric(dades$peu_diab2=="Si"))
-
+# Factor com a numeric 
+grup<-matrix(as.numeric(dt$grup=="Si"))
 
 # Codificar riscos competitius 
-model_Riscos<-cmprsk::crr(ftime=dades$temps_seguiment,
-                          fstatus=dades$status,
+model<-cmprsk::crr(ftime=dt$temps,
+                          fstatus=dt$status,
                           cov1=grup , #  matrix (nobs x ncovs) of fixed covariates
-                          failcode = "MCV", # code of fstatus that denotes the failure type of interest
+                          failcode = "event", # code of fstatus that denotes the failure type of interest
                           cencode = "Censored") # code of fstatus that denotes censored observations
 
-summary(model_Riscos)
+tab <- summary(model)$coef
+x <- round(cbind("beta" = tab[, 1], 
+                 "SE" = tab[, 3], 
+                 "p-value" = tab[, 5], 
+                 "HR" = tab[, 2],
+                 "LI" = exp(tab[, 1] - qnorm(1 - (1-0.95)/2)*tab[, 3]),
+                 "LS" = exp(tab[, 1] + qnorm(1 - (1-0.95)/2)*tab[, 3])), 4)
+colnames(x) <- c("Beta", "SE", "p-value", "HR", "Li95%CI", "Ls95%CI")
+rownames(x) <- rownames(tab)
 
-summaryHR.FGR(model_Riscos)
+as_tibble(x)
 
-summaryHR.FGR <- function(model, level = 0.95){
-  
-  tab <- summary(model)$coef
-  x <- round(cbind("beta" = tab[, 1], 
-                   "SE" = tab[, 3], 
-                   "z-value" = tab[, 4], 
-                   "p-value" = tab[, 5], 
-                   "HR" = tab[, 2],
-                   "LB" = exp(tab[, 1] - qnorm(1 - (1-level)/2)*tab[, 3]),
-                   "UB" = exp(tab[, 1] + qnorm(1 - (1-level)/2)*tab[, 3])), 4)
-  colnames(x) <- c("Estimate", "SE", "z-value", "p-value", "HR", paste0("LB(", round(100*level, 0), "% CI)"), paste0("UB(", round(100*level, 0), "% CI)"))
-  rownames(x) <- rownames(tab)
-  return(x)
 }
 
+# Extreure HR segons riscos competitius ---------------
 
-
-
-
-
-
+extreure_HRFG(event="exitusCV",temps="temps_seguiment")
+extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV")
+extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE")
+extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP")
 
 
 # Salvar objectes -------------

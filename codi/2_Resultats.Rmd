@@ -21,6 +21,9 @@ library(compareGroups)
 library(here)
 library(rlang)
 library(dplyr)
+library(cmprsk)
+library(kableExtra)
+
 
 load(here::here("output","output_MDORIA_v4.Rdata"))
 
@@ -29,7 +32,13 @@ load(here::here("output","output_MDORIA_v4.Rdata"))
 
 # Objectius
 
-S'estudia la mortalitat i les seves causes en la grup de pacients amb diabetis amb i sense peu diabètic (descripció basal: Biomed Res Int. 2016;2016:7217586) en el seguiment a més de 5 anys, i la seva comparació amb la dels pacients sense diabetis en la població en tractament renal susbstitutiu amb hemodiàlisi del territori de Lleida. S'analitzaran els factors pronòstics. Com a objectius secundaris, s'investigaran també altres esdeveniments rellevants pel pacient: esdeveniments cardiovasculars, hospitalització, noves úlceres de peu diabètic, i amputacions.
+S'estudia la mortalitat i les seves causes en la grup de pacients amb diabetis amb i sense peu diabètic (descripció basal: Biomed Res Int. 2016;2016:7217586) en el seguiment a més de 5 anys, i la seva comparació amb la dels pacients sense diabetis en la població en tractament renal susbstitutiu amb hemodiàlisi del territori de Lleida.S'analitzaran els factors pronòstics. Com a objectius secundaris, s'investigaran també altres esdeveniments rellevants pel pacient: esdeveniments cardiovasculars, hospitalització, noves úlceres de peu diabètic, i amputacions.
+
+> Avaluar la relació de peu diabetic y esdeveniments cardiovasculars, mortalitat CV, noves ulceres al llarg de 5 anys
+
+# Mètode
+
+Estimació d'incidencia acumulada de cada esdeveniment, caracteristiques basals, Hazard ratio (HR) i curves de Kaplan-Meier (KM) segons peu diabetic. Finalment estimació de HR segons riscos competitius. Estimation, testing and regression modeling of subdistribution functions in competing risks, as described in Gray (1988), A class of K-sample tests for comparing the cumulative incidence of a competing risk, Ann. Stat. 16:1141-1154 <doi:10.1214/aos/1176350951>, and Fine JP and Gray RJ (1999), A proportional hazards model for the subdistribution of a competing risk, JASA, 94:496-509
 
 ***
 
@@ -50,11 +59,11 @@ export2md(T0.1, caption = "Característiques basals dels pacients globals (DM vs
 
 ## Població diabetica (N=85)   
 
->Descriptiu de la població diabetica global i per grups (n=85)
+>Descriptiu de la població diabetica (n=85) i comparatiu segons grups (Peu diabetic i arteriopatia perifèrica)
 
 ```{r,message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T1.1, caption = "Característiques basals segons Peu diabetic (Úlcera o amputació)")
+export2md(T1.1, caption = "Característiques basals")
 
 export2md(T1.2, caption = "Característiques basals segons Peu diabetic (Úlcera o amputació)")
 
@@ -64,15 +73,14 @@ export2md(T1.3, caption = "Característiques basals segons antecedents arteriopa
 ```
 
 
-# Frequencia d'events principals
+# Frequencia d'events principals i comparativa basal
 
 Llistat d'events: 
 
-1.Mortalitat CV 
-2.Event Cardiovascular (EV_CI, EV_CV, EV_ART_PER, EV_ISQ_MESENTERICA, EV_COLITIS_ISQ)
-3.MACE (EV_CV or EV_CI or exitusCV)
-4.Ulcera o amputacio 
-5. Hospitalitzacio (?)
+1. Mortalitat CV 
+2. Event Cardiovascular (EV_CI, EV_CV, EV_ART_PER, EV_ISQ_MESENTERICA, EV_COLITIS_ISQ)
+3. MACE (EV_CV or EV_CI or exitusCV)
+4. Ulcera o amputacio 
 
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
@@ -90,7 +98,7 @@ export2md(T2.3, caption = "Events per grups: Peu diabetic (Artper)")
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 
-export2md(T3.1, caption = "Mortalitat segons característiques basals (IA i HR)")
+export2md(T3.1, caption = "Mortalitat Cardiovascular segons característiques basals i HR per cada factor")
 
 
 ```
@@ -101,7 +109,7 @@ Events considerats: CI, CV, ART_PER, ISQ_MESENTERICA, COLITIS_ISQ
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T3.2, caption = "ECV segons característiques basals (IA i HR)")
+export2md(T3.2, caption = "Característiques basals segons ECV i HR")
 
 ```
 
@@ -109,10 +117,8 @@ export2md(T3.2, caption = "ECV segons característiques basals (IA i HR)")
 # Events principals segons peu diabetic
 
 ## Taula dincidencia d'events
-## Taula de HR i significació estadística
 
-
-```{r HR_EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+```{r EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 # Taula dincidencia d'events ---------------
 formula<-formula_compare("events_principals",y="peu_diab2",taulavariables = here(conductor_variables))
@@ -123,6 +129,11 @@ export2md(taula4.1)
 taula4.2<-descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
 export2md(taula4.2)
 
+```
+
+## Taula de HR (Kaplan Meier) i significació estadística
+
+```{r HR_EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 #  3 Taula de HR -----
 descrTable(exitusCV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
@@ -133,20 +144,34 @@ descrTable(EV_ULC_AMP_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>%
 
 ```
 
+
 # Curves de KM de cada event per peu diabètic
 
 ```{r curvesKM, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-MCV_PLOTKM
+# PlotsKM ------
+plotKM_doria(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular")
+plotKM_doria(dt=dades,event="EV_CardV",temps="temps_fins_EVCardV",titol="Event cardiovascular")
+plotKM_doria(dt=dades,event="EV_MACE",temps="temps_fins_MACE",titol="MACE")
+plotKM_doria(dt=dades,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera/Amputació")
 
-ECV_PLOTKM
-
-MACE_PLOTKM
-
-MCV_PLOTKM
-
-ulcera_PLOTKM
 
 ```
+
+# Estimació de HR de cada esdeveniment segons peu diabetic segons riscos competitius (Fine & Gray)
+
+
+```{r HR_FG, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+extreure_HRFG(event="exitusCV",temps="temps_seguiment") %>% kable(caption="Risc de mortalitat cardiocascular") %>% kable_styling()
+
+extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV") %>% kable(caption="Risc d'esdeveniment cardiocascular") %>% kable_styling()
+
+extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE") %>% kable(caption="Risc de MACE") %>% kable_styling()
+
+extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP") %>% kable(caption="Risc d'Ulcera o amputació") %>% kable_styling()
+
+
+```
+
 
 

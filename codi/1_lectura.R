@@ -223,6 +223,12 @@ dades<-dades %>% mutate(temps_fins_ULCAMP=pmin(temps_fins_AMPMAJOR,temps_fins_AM
 dades$EV_ULC_AMP_surv<-Surv(dades$temps_fins_ULCAMP,as.integer(dades$EV_ULC_AMP=="Si"))
 
 
+# Generar variable grup (No DM / DM Peu /DM No Peu) --------
+dades<-dades %>% mutate(DM_PEU=case_when(diabetes=="Si" & peu_diab2=="Si"~"Peu DM",
+                                                   diabetes=="Si" & peu_diab2=="No"~"No peu DM",
+                                                   diabetes=="No" ~"No diabetic"))
+
+
 # 5. Hospitalització (No trobo la variable)
 
 
@@ -243,6 +249,14 @@ dades<-dades %>% filter(diabetes=="Si")
 formu<-formula_compare(x="baseline",y="diabetes",taulavariables = conductor_variables)
 T0.1<-descrTable(formu,data=dadestotal,show.p.overall = F,max.ylev=Inf,show.n = T,show.all=T)
 
+# Descriptiva baseline 0 Peu / No Peu / DM 
+formu<-formula_compare(x="baseline",y="DM_PEU",taulavariables = conductor_variables)
+T0.2<-descrTable(formu,data=dadestotal,show.p.overall = F,max.ylev=Inf,show.n = T,show.all=T)
+
+# Descriptiva baseline 0 Peu / No Peu / DM 
+formu<-formula_compare(x="baseline",y="",taulavariables = conductor_variables)
+T0.3<-descrTable(formu,data=dades,show.p.overall = F,max.ylev=Inf,show.n = T,show.all=T)
+
 # Ulcera vs no Ulcera
 # Descriptiva baseline  2 (Peu diabetic II) 
 
@@ -250,7 +264,7 @@ formu<-formula_compare(x="baseline",y="",taulavariables = conductor_variables)
 T1.1<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
 
 formu<-formula_compare(x="baseline",y="peu_diab2",taulavariables = conductor_variables)
-T1.2<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
+T1.2<-descrTable(formu,data=dades,show.p.overall = T,show.n = T,show.all = T)
 
 # Descriptiva baseline  3 (Artper ) 
 formu<-formula_compare(x="baseline",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)
@@ -262,18 +276,25 @@ formu<-formula_compare(x="events_principals",y="peu_diab2",taulavariables = cond
 T2.2<-descrTable(formu,data=dades,show.p.overall = T,timemax = 1825)
 
 
-# Seguiment Incidencia acumulada x Artper )  
+# Seguiment Incidencia acumulada x Artper   
 formu<-formula_compare(x="events_principals",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)
 T2.3<-descrTable(formu,data=dades,show.p.overall = T,timemax = 1825)
 
+# Mortalitat global  x Baseline  --------
+formu<-formula_compare(x="baseline2",y="exitus_surv",taulavariables = conductor_variables)
+T3.0<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
 
 # Mortalitat CV  x Baseline  --------
-formu<-formula_compare(x="baseline",y="exitusCV_surv",taulavariables = conductor_variables)
-T3.1<-descrTable(formu,data=dades,show.p.overall = T,show.ratio = T,byrow = T)
+formu<-formula_compare(x="baseline2",y="exitusCV_surv",taulavariables = conductor_variables)
+T3.1<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
 
 # Event CV x Baseline -------------
-formu<-formula_compare(x="baseline",y="EV_CardV_surv",taulavariables = conductor_variables)
-T3.2<-descrTable(formu,data=dades,show.p.overall = T,show.ratio = T,byrow = T)
+formu<-formula_compare(x="baseline2",y="EV_CardV_surv",taulavariables = conductor_variables)
+T3.2<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
+
+# MACE x Baseline -------------
+formu<-formula_compare(x="baseline2",y="EV_MACE_surv",taulavariables = conductor_variables)
+T3.3<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
 
 
 # Taula dincidencia d'events ---------------
@@ -281,7 +302,6 @@ formula<-formula_compare("events_principals",y="peu_diab2",taulavariables = cond
 descrTable(formula,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
 
 descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
-
 
 #  3 Taula de HR -----
 descrTable(exitusCV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
@@ -336,7 +356,7 @@ plotKM_doria(dt=dades,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera
 
 extreure_HRFG=function(event="exitusCV",temps="temps_seguiment",grup="peu_diab2",eventcompetitiu="exitus",dt=dades){
 
-# event="exitusCV"
+# event="exitus"
 # temps="temps_seguiment"
 event<-sym(event)
 temps<-sym(temps)
@@ -385,7 +405,7 @@ extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP")
 
 # Salvar objectes -------------
 
-save.image("output/output_MDORIA_v4.Rdata")
+save.image("output/output_MDORIA_v5.Rdata")
 
 
 

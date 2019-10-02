@@ -25,7 +25,7 @@ library(cmprsk)
 library(kableExtra)
 
 
-load(here::here("output","output_MDORIA_v4.Rdata"))
+load(here::here("output","output_MDORIA_v5.Rdata"))
 
 
 ```
@@ -44,12 +44,11 @@ Estimació d'incidencia acumulada de cada esdeveniment, caracteristiques basals,
 
 # Descriptiu basal i per grups 
 
-## Població general (N=220)   
+## Població general (N=220) 
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T0.1, caption = "Característiques basals dels pacients globals (DM vs resta)")
-
+export2md(T0.2, caption = "Característiques basals dels pacients globals (Peu diabetic, No peu DM, No diabetis)")
 
 
 ```
@@ -73,22 +72,31 @@ export2md(T1.3, caption = "Característiques basals segons antecedents arteriopa
 ```
 
 
-# Frequencia d'events principals i comparativa basal
+# Frequencia d'events principals, comparativa basal i Hazard ratios
 
 Llistat d'events: 
 
-1. Mortalitat CV 
-2. Event Cardiovascular (EV_CI, EV_CV, EV_ART_PER, EV_ISQ_MESENTERICA, EV_COLITIS_ISQ)
-3. MACE (EV_CV or EV_CI or exitusCV)
-4. Ulcera o amputacio 
+1. Mortalitat global (Exitus)
+2. Mortalitat CV 
+3. Event Cardiovascular (EV_CI, EV_CV, EV_ART_PER, EV_ISQ_MESENTERICA, EV_COLITIS_ISQ)
+4. MACE (EV_CV or EV_CI or exitusCV)
+5. Ulcera o amputacio 
 
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-
 export2md(T2.2, caption = "Events per grups: Peu diabetic (Úlcera / amputació)")
 
-export2md(T2.3, caption = "Events per grups: Peu diabetic (Artper)")
+
+```
+
+
+# Mortalitat global durant el seguiment segons característiques basals
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+export2md(T3.0, caption = "Hazard ratio de mortalitat global segons característiques basals")
+
 
 ```
 
@@ -97,19 +105,18 @@ export2md(T2.3, caption = "Events per grups: Peu diabetic (Artper)")
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-
-export2md(T3.1, caption = "Mortalitat Cardiovascular segons característiques basals i HR per cada factor")
-
+export2md(T3.1, caption = "Frequencia de mortalitat CV segons característiques basals i HR per cada factor")
 
 ```
 
-# Esdeveniment CV durant el seguiment segons característiques basals
+
+# MACE durant el seguiment segons característiques basals
 
 Events considerats: CI, CV, ART_PER, ISQ_MESENTERICA, COLITIS_ISQ
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T3.2, caption = "Característiques basals segons ECV i HR")
+export2md(T3.3, caption = "Frequencia de MACE segons característiques basals i HR per factor")
 
 ```
 
@@ -136,6 +143,7 @@ export2md(taula4.2)
 ```{r HR_EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 #  3 Taula de HR -----
+descrTable(exitus_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
 descrTable(exitusCV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
 descrTable(EV_CardV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
 descrTable(EV_MACE_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
@@ -149,7 +157,10 @@ descrTable(EV_ULC_AMP_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>%
 
 ```{r curvesKM, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
+library(ggplot2)
+
 # PlotsKM ------
+plotKM_doria(dt=dades,event="exitus",temps="temps_seguiment",titol="Mortalitat cardiovascular")
 plotKM_doria(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular")
 plotKM_doria(dt=dades,event="EV_CardV",temps="temps_fins_EVCardV",titol="Event cardiovascular")
 plotKM_doria(dt=dades,event="EV_MACE",temps="temps_fins_MACE",titol="MACE")
@@ -162,6 +173,7 @@ plotKM_doria(dt=dades,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera
 
 
 ```{r HR_FG, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
 extreure_HRFG(event="exitusCV",temps="temps_seguiment") %>% kable(caption="Risc de mortalitat cardiocascular") %>% kable_styling()
 
 extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV") %>% kable(caption="Risc d'esdeveniment cardiocascular") %>% kable_styling()

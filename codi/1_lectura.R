@@ -12,7 +12,7 @@ link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funci
 devtools::source_url(link_source)
 
 # Parametres --------------
-fitxer_dades<-"mortalitathemodialisi_24052019.xls"
+fitxer_dades<-"mortalitathemodialisi_25072019.xls"
 conductor_variables<-"taulavariables_v5.xls"
 
 # Llegir dades ----------------
@@ -24,6 +24,7 @@ dades<-netejar.noms.variables(dades)
 # Calculs  ----------------
 
 # Si any DG es 0 o 1 es recodifica com a missing 
+
 
 dades<-dades %>% mutate (any_dX_dm=ifelse(any_dX_dm==0 | any_dX_dm==1 ,NA,any_dX_dm)) 
 
@@ -229,6 +230,17 @@ dades<-dades %>% mutate(DM_PEU=case_when(diabetes=="Si" & peu_diab2=="Si"~"Peu D
                                                    diabetes=="No" ~"No diabetic"))
 
 
+# Generar variable antecedent CV ----------------------
+
+llista_antCV<-c("ANT1_CI","ANT2_CI", "ANT3_CI", "ANT1_CV", "ANT2_CV", "ANT1_ARTER_PERI", "ANT2_ARTE_PERI", "ANT3_ARTER_PERI",
+                "ANT1_ACxfA", "ANT2_ACXFA", "ANT1.IC")
+
+dades<-dades %>% 
+  comptar_valors(llista_antCV, valor="Si") %>% 
+  rename(ANTECENT_CV=num_valors) %>% 
+  mutate(ANTECENT_CV=ifelse(ANTECENT_CV>0,"Si","No"))
+
+
 # 5. Hospitalització (No trobo la variable)
 
 
@@ -406,6 +418,7 @@ extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP")
 # Salvar objectes -------------
 
 save.image("output/output_MDORIA_v5.Rdata")
+
 
 
 

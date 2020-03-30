@@ -255,11 +255,11 @@ dades<-etiquetar(dades,conductor_variables)
 # Selecciono DMs 
 dadestotal<-dades
 
-dades<-dades %>% filter(diabetes=="Si")
+# dades<-dades %>% filter(diabetes=="Si")
 
 # Descriptiva baseline 0 DM vs No DM
 formu<-formula_compare(x="baseline",y="diabetes",taulavariables = conductor_variables)
-T0.1<-descrTable(formu,data=dadestotal,show.p.overall = F,max.ylev=Inf,show.n = T,show.all=T)
+T0.1<-descrTable(formu,data=dadestotal,show.p.overall = T,max.ylev=Inf,show.n = T,show.all=T)
 
 # Descriptiva baseline 0 Peu / No Peu / DM 
 formu<-formula_compare(x="baseline",y="DM_PEU",taulavariables = conductor_variables)
@@ -324,7 +324,7 @@ descrTable(EV_ULC_AMP_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
 # Curves de supervivencia d'esdeveniments ----
 
 # Funció que Retorna curva K-M -------
-plotKM_doria<-function(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular",grup="peu_diab2") {
+plotKM_doria<-function(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular",grup="diabetes") {
 
   # dt=dades
   # titol<-"Mortalitat cardiovascular"
@@ -362,62 +362,19 @@ plotKM_doria(dt=dades,event="EV_MACE",temps="temps_fins_MACE",titol="MACE")
 plotKM_doria(dt=dades,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera/Amputació")
 
 # Analisis de supervivencia lliure d'esdeveniments RISCOS COMPETITIUS  -------------
-# Funció Riscos competitius Fine & Grey ------------------
-# Donat un event, temps de seguiment, grup, eventcompetitiu retorna tibble:
-# Beta, SE, p-value, HR, Li95%CI, Ls95%CI
-
-extreure_HRFG=function(event="exitusCV",temps="temps_seguiment",grup="peu_diab2",eventcompetitiu="exitus",dt=dades){
-
-# event="exitus"
-# temps="temps_seguiment"
-event<-sym(event)
-temps<-sym(temps)
-grup<-sym(grup)
-eventcompetitiu<-sym(eventcompetitiu)
-
-# Selecciono variables necessaries
-dt<-dt %>% select(grup=!!grup,exitus=!!eventcompetitiu,temps=!!temps,event=!!event)
-
-# Generar variable status (tipo de censuras) ----
-dt<-dt %>% mutate(status=case_when(event=="Si" ~"event",
-                                         event=="No" & exitus=="Si"~"Mortality",
-                                         event=="No" & exitus=="No"~"Censored")) 
-
-# Factor com a numeric 
-grup<-matrix(as.numeric(dt$grup=="Si"))
-
-# Codificar riscos competitius 
-model<-cmprsk::crr(ftime=dt$temps,
-                          fstatus=dt$status,
-                          cov1=grup , #  matrix (nobs x ncovs) of fixed covariates
-                          failcode = "event", # code of fstatus that denotes the failure type of interest
-                          cencode = "Censored") # code of fstatus that denotes censored observations
-
-tab <- summary(model)$coef
-x <- round(cbind("beta" = tab[, 1], 
-                 "SE" = tab[, 3], 
-                 "p-value" = tab[, 5], 
-                 "HR" = tab[, 2],
-                 "LI" = exp(tab[, 1] - qnorm(1 - (1-0.95)/2)*tab[, 3]),
-                 "LS" = exp(tab[, 1] + qnorm(1 - (1-0.95)/2)*tab[, 3])), 4)
-colnames(x) <- c("Beta", "SE", "p-value", "HR", "Li95%CI", "Ls95%CI")
-rownames(x) <- rownames(tab)
-
-as_tibble(x)
-
-}
 
 # Extreure HR segons riscos competitius ---------------
 
-extreure_HRFG(event="exitusCV",temps="temps_seguiment")
-extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV")
-extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE")
-extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP")
+extreure_HRFG(event="exitusCV",temps="temps_seguiment",grup="diabetes")
+extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV",grup="diabetes")
+extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE",grup="diabetes")
+extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup="diabetes")
+
 
 
 # Salvar objectes -------------
 
-save.image("output/output_MDORIA_v5.Rdata")
+save.image("output/output_MDORIA_v7.Rdata")
 
 
 

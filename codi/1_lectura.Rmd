@@ -1,5 +1,7 @@
 # Analisis Montse Doria         ------------
 
+
+```{r inici}
 memory.size(max=160685)
 
 # Carrega de funcions / llibreries -------------  
@@ -12,8 +14,8 @@ link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funci
 devtools::source_url(link_source)
 
 # Parametres --------------
-fitxer_dades<-"mortalitathemodialisi_25072019.xls"
-conductor_variables<-"taulavariables_v5.xls"
+fitxer_dades<-here::here("mortalitathemodialisi_25072019.xls")
+conductor_variables<-here::here("taulavariables_v5.xls")
 
 # Llegir dades ----------------
 dades<-readxl::read_excel(fitxer_dades)
@@ -21,28 +23,36 @@ dades<-readxl::read_excel(fitxer_dades)
 # Arreglar noms de variables ------------------
 dades<-netejar.noms.variables(dades)
 
+```
+
 # Calculs  ----------------
 
+```{r calculs1}
+
 # Si any DG es 0 o 1 es recodifica com a missing 
-
-
 dades<-dades %>% mutate (any_dX_dm=ifelse(any_dX_dm==0 | any_dX_dm==1 ,NA,any_dX_dm)) 
 
 # Convertir dates camps dates 
 # Convertir dates UTC a Rdata 
-
 camps_dates<-extreure.variables(taula="dates",taulavariables = conductor_variables)
-
 dades<-dataUTC_to_Rdata(camps_dates,dades)
 
-# Etiquetació  -------------------
+
+```
+
+
+```{r}
+# Factorització   -------------------
 dades<-etiquetar_valors(dt=dades,variables_factors=conductor_variables,fulla="etiquetes",camp_etiqueta="etiqueta")
-dades<-etiquetar(dades, taulavariables=conductor_variables)
+
 
 # Analisis exploratori -------------------
+# descrTable(~.-ID,dades,show.p.overall = F,method = 2,Q1 = 0, Q3 = 1,max.ylev=Inf)
 
-T1<-descrTable(~.-ID,dades,show.p.overall = F,method = 2,Q1 = 0, Q3 = 1,max.ylev=Inf)
+```
 
+
+```{r}
 # Calculo Surv mortalitat ------
 dades<-dades %>% mutate(temps_seguiment=dfin-data_inclusi,
                         exitus=ifelse(is.na(motiu_exitus),"No","Si"))
@@ -82,6 +92,11 @@ dades<-dades %>%
                                      is.na(EV1_ULCERES)~ temps_seguiment)) %>% 
   mutate(EV_ULCERES=ifelse(is.na(EV1_ULCERES),"No","Si")) 
 
+```
+
+
+```{r}
+
 # Calculo número de ULCERES ------------
 # EV1_ULCERES, EV2_ULCERES, EV3_ULCERES, EV4_ULCERES
 
@@ -98,7 +113,11 @@ dades<-dades %>%
   comptar_valors(variables=c("EV1_ULCERES", "EV2_ULCERES", "EV3_ULCERES", "EV4_ULCERES"),valor="Si") %>% 
   mutate(num_ulceres=num_valors) %>% 
   select(-num_valors)
-  
+
+```
+
+
+```{r}
 
 # Calculo Surv AMPUTACIO MENOR -------
 # EV1_AMP_MENOR
@@ -142,6 +161,10 @@ dades<-dades %>%
                                           is.na(EV1_ISQ_MESENTERICA)~ temps_seguiment)) %>% 
   mutate(EV_ISQ_MESENTERICA=ifelse(is.na(EV1_ISQ_MESENTERICA),"No","Si"))
 
+```
+
+
+```{r}
 
 # Calculo edat ----------------
 dades<-dades %>% mutate(edat=(data_inclusi-data_naixement)/365.25)
@@ -153,12 +176,18 @@ dates_si_no<-extreure.variables("dates_si_no",conductor_variables)
 # Convertir dates antecedents a 0/1  + factoritzar Si/No
 dades<-dades %>% 
   purrr::modify_at(dates_si_no, ~ as.numeric(!is.na(.x)) %>% 
-                     factor(levels=c(0,1), labels=c("No","Si"))
-                   ) 
+                     factor(levels=c(0,1), labels=c("No","Si"))) 
 # Calculo anys DM -------
 dades<-dades %>% 
   mutate (anys_DM=data_inclusi-lubridate::ymd(paste0(any_dX_dm,"06","15"))) %>%
   mutate (anys_DM=as.numeric(anys_DM/365.25))
+
+
+
+```
+
+
+```{r}
 
 # Calculo Variable exposició peu_diab -------------
 # Peu diabertic --> Ulcera + Amputacions + Artper
@@ -184,6 +213,10 @@ dades<-dades %>%
                                ANT1_AMP_MENOR=="Si"|
                                amputacions!="NO"~"Si",
                              TRUE~"No"))
+```
+
+
+```{r}
 
 # Construir/identificar events: ------------- 
 
@@ -197,6 +230,11 @@ dades$exitusCV_surv<-Surv(dades$temps_seguiment,as.integer(dades$exitusCV=="Si")
 # Verificació
 descrTable(exitusCV~EV_CV+motiu_exitus,data=dades,show.p.overall = F,show.all = T)
 
+```
+
+
+```{r}
+
 # 2. EV_CardV (Event CardV) ----------------
 # (Events considerats: EV_CI, EV_CV, EV_ART_PER, EV_ISQ_MESENTERICA, EV_COLITIS_ISQ)
 dades<-dades %>% mutate (EV_CardV=if_else(EV_CI=="Si" | EV_CV=="Si" | EV_ART_PER=="Si" | EV_ISQ_MESENTERICA=="Si" | EV_COLITIS_ISQ=="Si" ,"Si","No"))
@@ -206,6 +244,11 @@ dades$EV_CardV_surv<-Surv(dades$temps_fins_EVCardV,as.integer(dades$EV_CardV=="S
 # Verificacio
 descrTable(EV_CardV~EV_CI+EV_CV+EV_ART_PER+EV_ISQ_MESENTERICA+EV_COLITIS_ISQ,data=dades,show.p.overall = F,show.all = T)
 
+
+```
+
+
+```{r}
 # 3. MACE (Mortalitat CV o Event CV) ----------------
 dades<-dades %>% mutate (EV_MACE=if_else(EV_CV=="Si" | EV_CI=="Si" | exitusCV=="Si","Si","No"),
                          EV_MACE=if_else(is.na(EV_MACE),"No",EV_MACE))
@@ -216,6 +259,11 @@ dades$EV_MACE_surv<-Surv(dades$temps_fins_MACE,as.integer(dades$EV_MACE=="Si"))
 # Verificacio
 descrTable(~EV_MACE+EV_MACE_surv,data=dades)
 
+```
+
+
+```{r}
+
 # 4. Ulcera o amputacio (EV_ULCERES | EV_AMP_MENOR | EV_AMP_MAJOR) -----
 dades<-dades %>% mutate (EV_ULC_AMP=if_else(EV_ULCERES=="Si" | EV_AMP_MENOR=="Si" | EV_AMP_MAJOR=="Si","Si","No"))
 # Calculo el temps_ulcera/temps
@@ -224,10 +272,20 @@ dades<-dades %>% mutate(temps_fins_ULCAMP=pmin(temps_fins_AMPMAJOR,temps_fins_AM
 dades$EV_ULC_AMP_surv<-Surv(dades$temps_fins_ULCAMP,as.integer(dades$EV_ULC_AMP=="Si"))
 
 
+```
+
+
+```{r}
 # Generar variable grup (No DM / DM Peu /DM No Peu) --------
 dades<-dades %>% mutate(DM_PEU=case_when(diabetes=="Si" & peu_diab2=="Si"~"Peu DM",
                                                    diabetes=="Si" & peu_diab2=="No"~"No peu DM",
                                                    diabetes=="No" ~"No diabetic"))
+
+```
+
+
+
+```{r}
 
 
 # Generar variable antecedent CV ----------------------
@@ -241,142 +299,17 @@ dades<-dades %>%
   mutate(ANTECENT_CV=ifelse(ANTECENT_CV>0,"Si","No"))
 
 
-# 5. Hospitalització (No trobo la variable)
+
+```
+
+# Salvar dades preparades
+
+```{r}
+
+saveRDS(dades,here::here("dades","dades_preparades.RDS"))
 
 
-# FI PREPARACIÓ       -------------
-
-# INICI ANALISIS      -------------
-
-dades<-etiquetar(dades,conductor_variables)
-
-# Descriptiva basal per grups --------------
-
-# Selecciono DMs 
-dadestotal<-dades
-
-# dades<-dades %>% filter(diabetes=="Si")
-
-# Descriptiva baseline 0 DM vs No DM
-formu<-formula_compare(x="baseline",y="diabetes",taulavariables = conductor_variables)
-T0.1<-descrTable(formu,data=dadestotal,show.p.overall = T,max.ylev=Inf,show.n = T,show.all=T)
-
-# Descriptiva baseline 0 Peu / No Peu / DM 
-formu<-formula_compare(x="baseline",y="DM_PEU",taulavariables = conductor_variables)
-T0.2<-descrTable(formu,data=dadestotal,show.p.overall = F,max.ylev=Inf,show.n = T,show.all=T)
-
-# Descriptiva baseline 0 Peu / No Peu / DM 
-formu<-formula_compare(x="baseline",y="",taulavariables = conductor_variables)
-T0.3<-descrTable(formu,data=dades,show.p.overall = F,max.ylev=Inf,show.n = T,show.all=T)
-
-# Ulcera vs no Ulcera
-# Descriptiva baseline  2 (Peu diabetic II) 
-
-formu<-formula_compare(x="baseline",y="",taulavariables = conductor_variables)
-T1.1<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
-
-formu<-formula_compare(x="baseline",y="peu_diab2",taulavariables = conductor_variables)
-T1.2<-descrTable(formu,data=dades,show.p.overall = T,show.n = T,show.all = T)
-
-# Descriptiva baseline  3 (Artper ) 
-formu<-formula_compare(x="baseline",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)
-T1.3<-descrTable(formu,data=dades,show.p.overall = T,show.n = T)
-
-# Seguiment Incidencia acumulada d'events per grups  ----------------- 
-# Seguiment Incidencia acumulada x Peu diabetic (Peu diabetic (Úlcera / amputació)) 
-formu<-formula_compare(x="events_principals",y="peu_diab2",taulavariables = conductor_variables)
-T2.2<-descrTable(formu,data=dades,show.p.overall = T,timemax = 1825)
-
-
-# Seguiment Incidencia acumulada x Artper   
-formu<-formula_compare(x="events_principals",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)
-T2.3<-descrTable(formu,data=dades,show.p.overall = T,timemax = 1825)
-
-# Mortalitat global  x Baseline  --------
-formu<-formula_compare(x="baseline2",y="exitus_surv",taulavariables = conductor_variables)
-T3.0<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
-
-# Mortalitat CV  x Baseline  --------
-formu<-formula_compare(x="baseline2",y="exitusCV_surv",taulavariables = conductor_variables)
-T3.1<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
-
-# Event CV x Baseline -------------
-formu<-formula_compare(x="baseline2",y="EV_CardV_surv",taulavariables = conductor_variables)
-T3.2<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
-
-# MACE x Baseline -------------
-formu<-formula_compare(x="baseline2",y="EV_MACE_surv",taulavariables = conductor_variables)
-T3.3<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
-
-
-# Taula dincidencia d'events ---------------
-formula<-formula_compare("events_principals",y="peu_diab2",taulavariables = conductor_variables)
-descrTable(formula,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
-
-descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
-
-#  3 Taula de HR -----
-descrTable(exitusCV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
-descrTable(EV_CardV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
-descrTable(EV_MACE_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
-descrTable(EV_ULC_AMP_surv~peu_diab2,show.ratio = T,data=dades,show.all = T)
-
-# Curves de supervivencia d'esdeveniments ----
-
-# Funció que Retorna curva K-M -------
-plotKM_doria<-function(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular",grup="diabetes") {
-
-  # dt=dades
-  # titol<-"Mortalitat cardiovascular"
-  # event="exitusCV"
-  # grup="peu_diab2"
-  # temps="temps_seguiment"
-  
-  event<-sym(event)
-  grup_sym<-sym(grup)
-  temps<-sym(temps)
-  
-  dt <- dt %>% select(event=!!event,temps=!!temps,grup=!!grup_sym) 
-  
-  llegenda=c("No","Si")
-  # Basic survival curves
-  survminer::ggsurvplot(survfit(Surv(temps,as.integer(event=="Si"))~grup,data=dt), data = dt,
-                                    main = "Survival curve",
-                                    title= titol,
-                                    size = 0.5,
-                                    ylim = c(0,1),
-                                    xlim = c(0,1825),
-                                    break.x.by=365,
-                                    xlab = "Time in days",
-                                    risk.table = F,
-                                    censor.shape="|", censor.size = 1,
-                                    legend.labs=llegenda,
-                                    ggtheme = theme_bw())
-  }
-
-
-# PlotsKM ------
-plotKM_doria(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular")
-plotKM_doria(dt=dades,event="EV_CardV",temps="temps_fins_EVCardV",titol="Event cardiovascular")
-plotKM_doria(dt=dades,event="EV_MACE",temps="temps_fins_MACE",titol="MACE")
-plotKM_doria(dt=dades,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera/Amputació")
-
-# Analisis de supervivencia lliure d'esdeveniments RISCOS COMPETITIUS  -------------
-
-# Extreure HR segons riscos competitius ---------------
-
-extreure_HRFG(event="exitusCV",temps="temps_seguiment",grup="diabetes")
-extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV",grup="diabetes")
-extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE",grup="diabetes")
-extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup="diabetes")
-
-
-
-# Salvar objectes -------------
-
-save.image("output/output_MDORIA_v7.Rdata")
-
-
+```
 
 
 

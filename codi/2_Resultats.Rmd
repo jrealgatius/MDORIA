@@ -1,58 +1,102 @@
 ---
 title: "MORTALITAT I HEMODIALISI"
 author: "Jordi Real"
+website: "https://github.com/USR-DAPCAT/"
+
 date: "`r format(Sys.time(), '%d %B, %Y')`"
+
 output:
   html_document:
     df_print: paged
-    toc: TRUE
-  word_document: default
+    toc: true
+    toc_float: true
+    fig_caption: true
+    css: logos_css/usr_styles.css
+      
+    includes: 
+      in_header: header.html
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+&nbsp;
+<script>
+   $(document).ready(function() {
+     $head = $('#header');
+     $head.prepend('<img src=\"https://www.idiapjgol.org/images/logo.png\" style=\"float: right ;width: 130px;\"/>')
+     $head.prepend('<img src=\"https://avatars2.githubusercontent.com/u/57066591?s=200&v=4\" style=\"text-align: center;margin:auto;width: 80px;\"/>')
+   });
+</script>
 
 
-rm(list=ls())
-# memory.size(max=40000)
+<div class="watermark">DRAFT</div>
 
-#  libreries 
-library(compareGroups)
-library(here)
-library(rlang)
-library(dplyr)
-library(cmprsk)
-library(kableExtra)
+****
 
+```{r htmltemplate, echo=FALSE}
+# ![](logoDAP_Cat.png)
 
-load(here::here("output","output_MDORIA_v7.Rdata"))
+# htmltools::img(src = knitr::image_uri(file.path("logos_css", "logo.jpg")), 
+#                alt = 'logo', 
+#                style = 'position:absolute; top:-90px; right:1%; padding:5px;')
 
-conductor_variables<-here::here("taulavariables_v5.xls")
+img<-htmltools::img(src = knitr::image_uri(file.path("logos_css", "logo.jpg")), 
+               alt = 'logo', 
+               style = 'position:absolute; text-align: center;padding-right:150px;width: 185px;padding:10px;')
+
+# src="https://www.idiapjgol.org/images/logo.png" 
+# style= 'float: right ;width: 130px'
+# 
+# src="https://avatars2.githubusercontent.com/u/57066591?s=200&v=4"
+# style = 'text-align: center;;margin:auto;width: 80px'
+
+# padding-left:30px
+
+htmlhead <- paste0('
+  <script>
+  document.write(\'<div class="logos">',img,'</div>\')
+  </script>
+  ')
+
+readr::write_lines(htmlhead, path = "header.html")
 
 ```
 
-# Objectius
+
+
+# OBJECTIUS
 
 S'estudia la mortalitat i les seves causes en la grup de pacients amb diabetis amb i sense peu diabètic (descripció basal: Biomed Res Int. 2016;2016:7217586) en el seguiment a més de 5 anys, i la seva comparació amb la dels pacients sense diabetis en la població en tractament renal susbstitutiu amb hemodiàlisi del territori de Lleida.S'analitzaran els factors pronòstics. Com a objectius secundaris, s'investigaran també altres esdeveniments rellevants pel pacient: esdeveniments cardiovasculars, hospitalització, noves úlceres de peu diabètic, i amputacions.
 
-> Avaluar la relació de peu diabetic y esdeveniments cardiovasculars, mortalitat CV, noves ulceres al llarg de 5 anys
+* Avaluar la relació de peu diabetic y esdeveniments cardiovasculars, mortalitat CV, noves ulceres al llarg de 5 anys
 
-> Avaluar la relació de diabetis i esdeveniments cardiovasculars, mortalitat CV, noves ulceres al llarg de 5 anys
+* Avaluar la relació de diabetis i esdeveniments cardiovasculars, mortalitat CV, noves ulceres al llarg de 5 anys
 
-# Mètode
+
+# MÈTODE
 
 Estimació d'incidencia acumulada de cada esdeveniment, caracteristiques basals, Hazard ratio (HR) i curves de Kaplan-Meier (KM) segons peu diabetic. Finalment estimació de HR segons riscos competitius. Estimation, testing and regression modeling of subdistribution functions in competing risks, as described in Gray (1988), A class of K-sample tests for comparing the cumulative incidence of a competing risk, Ann. Stat. 16:1141-1154 <doi:10.1214/aos/1176350951>, and Fine JP and Gray RJ (1999), A proportional hazards model for the subdistribution of a competing risk, JASA, 94:496-509
 
 ***
 
-## 0. Estat:
+# ESTAT
 
-**Actualització (30/03/2020) **
+**Actualització**
+
+> 17/08/2020
+
+&check; Les dades basals correctes són les de l’anàlisi 2 (55 no peu i 30 peu) per tant caldria tornar a fer l’anàlisi de l’arxiu 1 amb aquestes Ns (n=85) <br/>
+&check; Canvis de categories de referència segons anàlisis  <br/>
+&check; Títuls de figures i informe segons base de dades analitzada (n=220 o n= 85)<br/>
+&check; Numerar taules <br/>
+
+
+**Realitzat**
+
+> 30/03/2020
 
 &check; Realitzar mateixa aproximació tota la base de dades comparant DM versus no DM (n=220) <br/>
 &check; Calcular HR ajustats per: Age, Gender, Hypertension, Dyslipidemia, Smoking, Previous CVD (any)  <br/>
 
-**Realizat**
+> 
 
 &check; Importar fitxers excel i SPSS en diferents formats   <br/>
 &check; Formatejar dades (Noms de variables, camps dates)  <br/>
@@ -73,15 +117,113 @@ Estimació d'incidencia acumulada de cada esdeveniment, caracteristiques basals,
 * Manuscrit
 
 
-# Descriptiu basal i per grups 
 
-## Població general (N=220) 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+rm(list=ls())
+# memory.size(max=40000)
+
+#  libreries 
+library(compareGroups)
+library(here)
+library(rlang)
+library(dplyr)
+library(cmprsk)
+library(kableExtra)
+library(ggplot2)
+
+
+link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
+devtools::source_url(link_source)
+
+# parametres
+
+conductor_variables<-here::here("taulavariables_v5.xls")
+
+```
+
+
+```{r funcio, include=FALSE}
+
+# Curves de supervivencia d'esdeveniments ----
+
+# Funció que Retorna curva K-M -------
+plotKM_doria<-function(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular",grup="diabetes") {
+
+  # dt=dades
+  # titol<-"Mortalitat cardiovascular"
+  # event="exitusCV"
+  # grup="peu_diab2"
+  # temps="temps_seguiment"
+  
+  event<-sym(event)
+  grup_sym<-sym(grup)
+  temps<-sym(temps)
+  
+  dt <- dt %>% select(event=!!event,temps=!!temps,grup=!!grup_sym) 
+  
+  llegenda=c("No","Si")
+  # Basic survival curves
+  survminer::ggsurvplot(survfit(Surv(temps,as.integer(event=="Si"))~grup,data=dt), data = dt,
+                                    main = "Survival curve",
+                                    title= titol,
+                                    size = 0.5,
+                                    ylim = c(0,1),
+                                    xlim = c(0,1825),
+                                    break.x.by=365,
+                                    xlab = "Time in days",
+                                    risk.table = F,
+                                    censor.shape="|", censor.size = 1,
+                                    legend.labs=llegenda,
+                                    ggtheme = theme_bw())
+  }
+
+
+```
+
+
+```{r lectura, include=FALSE}
+
+# load(here::here("output","output_MDORIA_v7.Rdata"))
+
+dades<-readRDS(here::here("dades","dades_preparades.RDS"))
+
+# Etiquetar
+dades<-etiquetar(dades,conductor_variables)
+
+# Cambiar categoria de referencia
+dades<-refcat(DF=dades,conductor=conductor_variables,ref="ref_cat",sheet="etiquetes")
+
+
+# Selecciono DMs (n=85) 
+dadestotal<-dades
+
+dades<-dades %>% filter(diabetes=="Si")
+
+
+
+```
+
+# RESULTATS
+
+## Descriptiu basal i per grups 
+
+### Població general (N=220) 
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T0.1, caption = "Característiques basals dels pacients globals (Diabetic vs No diabetis)")
+# Descriptiva baseline 0 DM vs No DM
+formu<-formula_compare(x="baseline",y="diabetes",taulavariables = conductor_variables)
+descrTable(formu,data=dadestotal,show.p.overall = T,max.ylev=Inf,show.n = T,show.all=T) %>% 
+  export2md(caption = "Taula 1. Característiques basals dels pacients globals (Diabetic vs No diabetis)")
 
-export2md(T0.2, caption = "Característiques basals dels pacients globals (Peu diabetic, No peu DM, No diabetis)")
+# Descriptiva baseline 0 Peu / No Peu / DM 
+formu<-formula_compare(x="baseline",y="DM_PEU",taulavariables = conductor_variables)
+descrTable(formu,data=dadestotal,show.p.overall = F,max.ylev=Inf,show.n = T,show.all=T) %>% 
+  export2md(caption = "Taula 2. Característiques basals dels pacients globals (Peu diabetic, No peu DM, No diabetis)")
+
 
 
 ```
@@ -94,18 +236,27 @@ export2md(T0.2, caption = "Característiques basals dels pacients globals (Peu d
 >Descriptiu comparatiu segons grups (Peu diabetic i arteriopatia perifèrica)
 
 ```{r,message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+# Ulcera vs no Ulcera
+# Descriptiva baseline  2 (Peu diabetic II) 
+formu<-formula_compare(x="baseline",y="peu_diab2",taulavariables = conductor_variables)
 
-# export2md(T1.1, caption = "Característiques basals")
+descrTable(formu,data=dades,show.p.overall = T,show.n = T,show.all = T) %>% 
+  export2md(caption = "Taula 3. Característiques basals segons Peu diabetic (Úlcera o amputació)")
 
-export2md(T1.2, caption = "Característiques basals segons Peu diabetic (Úlcera o amputació)")
+# Descriptiva baseline  3 (Artper ) 
+formu<-formula_compare(x="baseline",y="ANT1_ARTER_PERI",taulavariables = conductor_variables)
 
-export2md(T1.3, caption = "Característiques basals segons antecedents arteriopatia perifèrica")
+descrTable(formu,data=dades,show.p.overall = T,show.n = T) %>% 
+  export2md(caption = "Taula 4. Característiques basals segons antecedents arteriopatia perifèrica")
+
+
+
 
 
 ```
 
 
-# Frequencia d'events principals, comparativa basal i Hazard ratios
+## Frequencia d'events principals, comparativa basal i Hazard ratios (N=85)
 
 Llistat d'events: 
 
@@ -118,94 +269,128 @@ Llistat d'events:
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T2.2, caption = "Events per grups: Peu diabetic (Úlcera / amputació)")
+
+formu<-formula_compare(x="events_principals",y="peu_diab2",taulavariables = conductor_variables)
+
+descrTable(formu,data=dades,show.p.overall = T,timemax = 1825) %>% 
+  export2md(caption = "Taula 5. Events per grups: Peu diabetic (Úlcera / amputació)")
 
 
 ```
 
 
-# Mortalitat global durant el seguiment segons característiques basals
+## Mortalitat global durant el seguiment segons característiques basals (n=85)
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T3.0, caption = "Hazard ratio de mortalitat global segons característiques basals")
+# Mortalitat global  x Baseline  --------
+formu<-formula_compare(x="baseline2",y="exitus_surv",taulavariables = conductor_variables)
+T3.0<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
+
+export2md(T3.0, caption = "Taula 6. Comparativa i Hazard ratio de mortalitat global segons característiques basals")
+
+
 
 
 ```
 
 
-# Mortalitat CV durant el seguiment segons característiques basals
+## Mortalitat CV durant el seguiment segons característiques basals (n=85)
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T3.1, caption = "Frequencia de mortalitat CV segons característiques basals i HR per cada factor")
+# Mortalitat CV  x Baseline  --------
+formu<-formula_compare(x="baseline2",y="exitusCV_surv",taulavariables = conductor_variables)
+T3.1<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
+
+
+export2md(T3.1, caption = "Taula 7. Frequencia de mortalitat CV segons característiques basals i HR per cada factor")
 
 ```
 
 
-# MACE durant el seguiment segons característiques basals
+## MACE durant el seguiment segons característiques basals (n=85)
 
 Events considerats: CI, CV, ART_PER, ISQ_MESENTERICA, COLITIS_ISQ
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(T3.3, caption = "Frequencia de MACE segons característiques basals i HR per factor")
+
+# MACE x Baseline -------------
+formu<-formula_compare(x="baseline2",y="EV_MACE_surv",taulavariables = conductor_variables)
+T3.3<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
+
+
+export2md(T3.3, caption = "Taula 8. Frequencia de MACE segons característiques basals i HR per factor")
 
 ```
 
 
-# Events principals segons Diabetes (Si/No)
+## Events principals segons Diabetes (N=220)
 
-## Taula dincidencia d'events
+### Taula 8. Taula dincidencia d'events
+
 
 ```{r EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
-
 # Taula dincidencia d'events ---------------
 formula<-formula_compare("events_principals",y="diabetes",taulavariables = conductor_variables)
 
-taula4.1<-descrTable(formula,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
+taula4.1<-descrTable(formula,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dadestotal,show.all = T)
 export2md(taula4.1)
+```
 
-taula4.2<-descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dades,show.all = T)
+### Taula 9. Taula dincidencia d'events
+
+```{r EVENTS2, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+taula4.2<-descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dadestotal,show.all = T)
 export2md(taula4.2)
 
 ```
 
-## Taula de HR (Kaplan Meier) i significació estadística
+## Taules de HR (Kaplan Meier) i significació estadística (n=220)
+
+### Taula 10. Taula dincidencia d'events i HR
 
 ```{r HR_EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 #  3 Taula de HR -----
-descrTable(exitus_surv~diabetes,show.ratio = T,data=dades,show.all = T) %>% export2md()
-descrTable(exitusCV_surv~diabetes,show.ratio = T,data=dades,show.all = T) %>% export2md()
-descrTable(EV_CardV_surv~diabetes,show.ratio = T,data=dades,show.all = T) %>% export2md()
-descrTable(EV_MACE_surv~diabetes,show.ratio = T,data=dades,show.all = T) %>% export2md()
-descrTable(EV_ULC_AMP_surv~diabetes,show.ratio = T,data=dades,show.all = T) %>% export2md()
+descrTable(exitus_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
+descrTable(exitusCV_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
+descrTable(EV_CardV_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
+descrTable(EV_MACE_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
+descrTable(EV_ULC_AMP_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
 
 
 ```
 
+## FIGURES
 
-# Curves de KM de cada event per grups (DM versus No DM)
+### Corves KM de cada event per grups (DM versus No DM, n=220)
 
 ```{r curvesKM, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-library(ggplot2)
 
 # PlotsKM ------
-plotKM_doria(dt=dades,event="exitus",temps="temps_seguiment",titol="Mortalitat cardiovascular")
-plotKM_doria(dt=dades,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular")
-plotKM_doria(dt=dades,event="EV_CardV",temps="temps_fins_EVCardV",titol="Event cardiovascular")
-plotKM_doria(dt=dades,event="EV_MACE",temps="temps_fins_MACE",titol="MACE")
-plotKM_doria(dt=dades,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera/Amputació")
+plotKM_doria(dt=dadestotal,event="exitus",temps="temps_seguiment",titol="Mortalitat Global")
+plotKM_doria(dt=dadestotal,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular")
+plotKM_doria(dt=dadestotal,event="EV_CardV",temps="temps_fins_EVCardV",titol="Event cardiovascular")
+plotKM_doria(dt=dadestotal,event="EV_MACE",temps="temps_fins_MACE",titol="MACE")
+plotKM_doria(dt=dadestotal,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera/Amputació")
 
 
 ```
 
-# Estimació de HR de cada esdeveniment segons peu diabetic segons riscos competitius (Fine & Gray)
+## Estimació de HR per cada esdeveniment segons riscos competitius (Fine & Gray) (N=220)
+
+### Taula 11. HRs en DM respecte no diabetis
 
 
 ```{r HR_FG, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+dades<-dadestotal
+
+extreure_HRFG(event="exitus",temps="temps_seguiment",grup="diabetes") %>% 
+  kable(caption="Risc de mortalitat cardiocascular",digits = 3) %>% kable_styling()
 
 extreure_HRFG(event="exitusCV",temps="temps_seguiment",grup="diabetes") %>% 
   kable(caption="Risc de mortalitat cardiocascular",digits = 3) %>% kable_styling()
@@ -222,9 +407,9 @@ extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup="diabetes") %>%
 
 ```
 
-# Estimació de HR *ajustats* de cada esdeveniment segons peu diabetic segons riscos competitius (Fine & Gray)
+## Estimació de HR *ajustats* per cada esdeveniment segons riscos competitius (Fine & Gray)
 
-> Ajust segons variables 
+### Taula 12. HRs ajustats en DM respecte no diabetis
 
 
 ```{r HR_FG2, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
@@ -232,6 +417,9 @@ extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup="diabetes") %>%
 variablesajust<-extreure.variables("vajust3", taulavariables = conductor_variables)
 
 print(paste0("Ajustat per: ", paste0(variablesajust,collapse=", ")))
+
+extreure_HRFG(event="exitus",temps="temps_seguiment",grup="diabetes",covariables = variablesajust) %>% 
+  kable(caption="HR de Risc de mortalitat cardiocascular ajustat",digits = 3) %>% kable_styling()
 
 extreure_HRFG(event="exitusCV",temps="temps_seguiment",grup="diabetes",covariables = variablesajust) %>% 
   kable(caption="HR de Risc de mortalitat cardiocascular ajustat",digits = 3) %>% kable_styling()
@@ -247,4 +435,14 @@ extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup="diabetes",covar
 
 
 ```
+
+
+&nbsp;
+<hr />
+<p style="text-align: center;">A work by $Jordi Real$ </a></p>
+<p style="text-align: center;">$LlepaliSystem$ </a></p>
+<p style="text-align: center;"><span style="color: #808080;"><em><https://github.com/jrealgatius/></em></span></p>
+
+
+
 

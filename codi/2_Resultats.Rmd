@@ -62,7 +62,7 @@ readr::write_lines(htmlhead, path = "header.html")
 
 
 
-# OBJECTIUS
+# 1. OBJECTIUS
 
 S'estudia la mortalitat i les seves causes en la grup de pacients amb diabetis amb i sense peu diabètic (descripció basal: Biomed Res Int. 2016;2016:7217586) en el seguiment a més de 5 anys, i la seva comparació amb la dels pacients sense diabetis en la població en tractament renal susbstitutiu amb hemodiàlisi del territori de Lleida.S'analitzaran els factors pronòstics. Com a objectius secundaris, s'investigaran també altres esdeveniments rellevants pel pacient: esdeveniments cardiovasculars, hospitalització, noves úlceres de peu diabètic, i amputacions.
 
@@ -71,15 +71,42 @@ S'estudia la mortalitat i les seves causes en la grup de pacients amb diabetis a
 * Avaluar la relació de diabetis i esdeveniments cardiovasculars, mortalitat CV, noves ulceres al llarg de 5 anys
 
 
-# MÈTODE
+# 2. MÈTODE
 
 Estimació d'incidencia acumulada de cada esdeveniment, caracteristiques basals, Hazard ratio (HR) i curves de Kaplan-Meier (KM) segons peu diabetic. Finalment estimació de HR segons riscos competitius. Estimation, testing and regression modeling of subdistribution functions in competing risks, as described in Gray (1988), A class of K-sample tests for comparing the cumulative incidence of a competing risk, Ann. Stat. 16:1141-1154 <doi:10.1214/aos/1176350951>, and Fine JP and Gray RJ (1999), A proportional hazards model for the subdistribution of a competing risk, JASA, 94:496-509
 
 ***
 
-# ESTAT
+# 3. ESTAT
 
 **Actualització**
+
+> 21/10/2020
+
+**Llistat de coses pendents:**
+
+&check; 1.Taula 6. Comparativa i Hazard ratio de mortalitat global segons característiques basals
+Fer per població total; n=220 <br/>
+
+&check; 2.Taula 7. Freqüència de mortalitat CV segons característiques basals i HR per cada factor
+Fer per població total; n=220 <br/>
+
+&check; 3. Taula 8. Freqüència de MACE segons característiques basals i HR per factor
+Fer per població total; n=220 <br/>
+
+&check; 4. Taula 8.2 Taula d’incidència d’events: Calcular el temps de seguiment per mortalitat global a 5 anys en mitjana i SD 
+. *He calculat mediana [Q1 i Q3] es més correcte per resumir temps*  <br/>
+
+&check; 5.Taula 10. Taula d’incidència d’events i HR. Fer per població diabètica; n=85. 
+*PEU VS NO PEU, doncs tots son DM* <br/>
+
+&check; 6. Corbes KM de cada event per grups. Fer per DM peu vs. no peu (n=85) <br/>
+
+&check; 7.	Taula 12. Estimació de HR ajustats per cada esdeveniment segons riscos competitius (Fine & Gray)
+Fer HRs ajustats en Peu respecte no peu (n=85)<br/>
+
+
+**Realitzat**
 
 > 17/08/2020
 
@@ -87,9 +114,6 @@ Estimació d'incidencia acumulada de cada esdeveniment, caracteristiques basals,
 &check; Canvis de categories de referència segons anàlisis  <br/>
 &check; Títuls de figures i informe segons base de dades analitzada (n=220 o n= 85)<br/>
 &check; Numerar taules <br/>
-
-
-**Realitzat**
 
 > 30/03/2020
 
@@ -190,12 +214,16 @@ plotKM_doria<-function(dt=dades,event="exitusCV",temps="temps_seguiment",titol="
 
 dades<-readRDS(here::here("dades","dades_preparades.RDS"))
 
+
 # Etiquetar
 dades<-etiquetar(dades,conductor_variables)
+
+
 
 # Cambiar categoria de referencia
 dades<-refcat(DF=dades,conductor=conductor_variables,ref="ref_cat",sheet="etiquetes")
 
+dades<-refcat(DF=dades,conductor=conductor_variables,ref="ref_cat")
 
 # Selecciono DMs (n=85) 
 dadestotal<-dades
@@ -206,7 +234,7 @@ dades<-dades %>% filter(diabetes=="Si")
 
 ```
 
-# RESULTATS
+# 4. RESULTATS
 
 ## Descriptiu basal i per grups 
 
@@ -221,8 +249,11 @@ descrTable(formu,data=dadestotal,show.p.overall = T,max.ylev=Inf,show.n = T,show
 
 # Descriptiva baseline 0 Peu / No Peu / DM 
 formu<-formula_compare(x="baseline",y="DM_PEU",taulavariables = conductor_variables)
-descrTable(formu,data=dadestotal,show.p.overall = F,max.ylev=Inf,show.n = T,show.all=T) %>% 
+descrTable(formu,data=dadestotal,show.p.overall = F,show.p.mul = T,max.ylev=Inf,show.n = T,show.all=T) %>% 
   export2md(caption = "Taula 2. Característiques basals dels pacients globals (Peu diabetic, No peu DM, No diabetis)")
+
+# Descriptiva baseline 0 Peu / No Peu / DM 
+descrTable(DM_PEU ~ anys_DM ,data=dadestotal,show.p.overall = F,show.p.mul = T,max.ylev=Inf,show.n = T,show.all=T,method = 2, extra.labels = c("","","")) %>% export2md(caption = "Duració (Peu diabetic, No peu DM, No diabetis)")
 
 
 
@@ -272,36 +303,32 @@ Llistat d'events:
 
 formu<-formula_compare(x="events_principals",y="peu_diab2",taulavariables = conductor_variables)
 
-descrTable(formu,data=dades,show.p.overall = T,timemax = 1825) %>% 
+descrTable(formu,data=dades,show.p.overall = T,timemax = 1825,method = 2,extra.labels = c("","","","")) %>% 
   export2md(caption = "Taula 5. Events per grups: Peu diabetic (Úlcera / amputació)")
 
 
 ```
 
 
-## Mortalitat global durant el seguiment segons característiques basals (n=85)
+## Mortalitat global durant el seguiment segons característiques basals (n=220)
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
-
 # Mortalitat global  x Baseline  --------
 formu<-formula_compare(x="baseline2",y="exitus_surv",taulavariables = conductor_variables)
-T3.0<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
 
-export2md(T3.0, caption = "Taula 6. Comparativa i Hazard ratio de mortalitat global segons característiques basals")
-
-
-
+descrTable(formu,data=dadestotal,show.p.overall = F,show.ratio = T,byrow = T) %>% 
+  export2md(caption = "Taula 6. Frequencia de mortalitat global segons característiques basals, HR per cada factor")
 
 ```
 
 
-## Mortalitat CV durant el seguiment segons característiques basals (n=85)
+## Mortalitat CV durant el seguiment segons característiques basals (n=220)
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 # Mortalitat CV  x Baseline  --------
 formu<-formula_compare(x="baseline2",y="exitusCV_surv",taulavariables = conductor_variables)
-T3.1<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
+T3.1<-descrTable(formu,data=dadestotal,show.p.overall = F,show.ratio = T,byrow = T)
 
 
 export2md(T3.1, caption = "Taula 7. Frequencia de mortalitat CV segons característiques basals i HR per cada factor")
@@ -318,7 +345,7 @@ Events considerats: CI, CV, ART_PER, ISQ_MESENTERICA, COLITIS_ISQ
 
 # MACE x Baseline -------------
 formu<-formula_compare(x="baseline2",y="EV_MACE_surv",taulavariables = conductor_variables)
-T3.3<-descrTable(formu,data=dades,show.p.overall = F,show.ratio = T,byrow = T)
+T3.3<-descrTable(formu,data=dadestotal,show.p.overall = F,show.ratio = T,byrow = T)
 
 
 export2md(T3.3, caption = "Taula 8. Frequencia de MACE segons característiques basals i HR per factor")
@@ -328,37 +355,42 @@ export2md(T3.3, caption = "Taula 8. Frequencia de MACE segons característiques 
 
 ## Events principals segons Diabetes (N=220)
 
-### Taula 8. Taula dincidencia d'events
+### Taula 8.2 Taula dincidencia d'events
 
 
 ```{r EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 # Taula dincidencia d'events ---------------
 formula<-formula_compare("events_principals",y="diabetes",taulavariables = conductor_variables)
 
-taula4.1<-descrTable(formula,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dadestotal,show.all = T)
+taula4.1<-descrTable(formula,Q1 =0.25,Q3=0.75, method = 2,timemax = 1825,data=dadestotal,show.all = T,extra.labels = c("","","",""))
 export2md(taula4.1)
+
+
 ```
 
 ### Taula 9. Taula dincidencia d'events
 
 ```{r EVENTS2, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
-taula4.2<-descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0,Q3=1, method = 2,timemax = 1825,data=dadestotal,show.all = T)
-export2md(taula4.2)
+descrTable(peu_diab2~exitusCV+exitusCV_surv+temps_seguiment,Q1 =0.25,Q3=0.75, method = 2,timemax = 1825,data=dadestotal,show.all = T,extra.labels = c("","","","")) %>% export2md()
+
+1828/365.25
 
 ```
 
-## Taules de HR (Kaplan Meier) i significació estadística (n=220)
+## Taules de HR (Kaplan Meier) i significació estadística (n=85)
 
-### Taula 10. Taula dincidencia d'events i HR
+### Taula 10. Taula dincidencia d'events i HR (peu vs no peu)
 
 ```{r HR_EVENTS, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 #  3 Taula de HR -----
-descrTable(exitus_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
-descrTable(exitusCV_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
-descrTable(EV_CardV_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
-descrTable(EV_MACE_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
-descrTable(EV_ULC_AMP_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T) %>% export2md()
+
+
+descrTable(exitus_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
+descrTable(exitusCV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
+descrTable(EV_CardV_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
+descrTable(EV_MACE_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
+descrTable(EV_ULC_AMP_surv~peu_diab2,show.ratio = T,data=dades,show.all = T) %>% export2md()
 
 
 ```
@@ -369,39 +401,42 @@ descrTable(EV_ULC_AMP_surv~diabetes,show.ratio = T,data=dadestotal,show.all = T)
 
 ```{r curvesKM, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
+dt_temp<-dades
 
 # PlotsKM ------
-plotKM_doria(dt=dadestotal,event="exitus",temps="temps_seguiment",titol="Mortalitat Global")
-plotKM_doria(dt=dadestotal,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular")
-plotKM_doria(dt=dadestotal,event="EV_CardV",temps="temps_fins_EVCardV",titol="Event cardiovascular")
-plotKM_doria(dt=dadestotal,event="EV_MACE",temps="temps_fins_MACE",titol="MACE")
-plotKM_doria(dt=dadestotal,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera/Amputació")
+plotKM_doria(dt=dt_temp,event="exitus",temps="temps_seguiment",titol="Mortalitat Global", grup = "peu_diab2")
+plotKM_doria(dt=dt_temp,event="exitusCV",temps="temps_seguiment",titol="Mortalitat cardiovascular",grup = "peu_diab2")
+plotKM_doria(dt=dt_temp,event="EV_CardV",temps="temps_fins_EVCardV",titol="Event cardiovascular",grup = "peu_diab2")
+plotKM_doria(dt=dt_temp,event="EV_MACE",temps="temps_fins_MACE",titol="MACE",grup = "peu_diab2")
+plotKM_doria(dt=dt_temp,event="EV_ULC_AMP",temps="temps_fins_ULCAMP",titol="Ulcera/Amputació",grup = "peu_diab2")
 
 
 ```
 
-## Estimació de HR per cada esdeveniment segons riscos competitius (Fine & Gray) (N=220)
+## Estimació de HR per cada esdeveniment segons riscos competitius (Fine & Gray) (N=85)
 
-### Taula 11. HRs en DM respecte no diabetis
+### Taula 11. HRs en DM Peu vs no Peu en població diabetica (n=85)
 
 
 ```{r HR_FG, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-dades<-dadestotal
+dt_temp<-dades
+grup<-"peu_diab2"
+# grup<-"diabetes"
 
-extreure_HRFG(event="exitus",temps="temps_seguiment",grup="diabetes") %>% 
+extreure_HRFG(event="exitus",temps="temps_seguiment",grup=grup,dt=dt_temp) %>% 
   kable(caption="Risc de mortalitat cardiocascular",digits = 3) %>% kable_styling()
 
-extreure_HRFG(event="exitusCV",temps="temps_seguiment",grup="diabetes") %>% 
+extreure_HRFG(event="exitusCV",temps="temps_seguiment",grup=grup,dt=dt_temp) %>% 
   kable(caption="Risc de mortalitat cardiocascular",digits = 3) %>% kable_styling()
 
-extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV",grup="diabetes") %>% 
+extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV",grup=grup,dt=dt_temp) %>% 
   kable(caption="Risc d'esdeveniment cardiocascular",digits = 3) %>% kable_styling()
 
-extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE",grup="diabetes") %>% 
+extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE",grup=grup,dt=dt_temp) %>% 
   kable(caption="Risc de MACE",digits = 3) %>% kable_styling()
 
-extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup="diabetes") %>% 
+extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup=grup,dt=dt_temp) %>% 
   kable(caption="Risc d'Ulcera o amputació",digits = 3) %>% kable_styling()
 
 
@@ -409,28 +444,32 @@ extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup="diabetes") %>%
 
 ## Estimació de HR *ajustats* per cada esdeveniment segons riscos competitius (Fine & Gray)
 
-### Taula 12. HRs ajustats en DM respecte no diabetis
+### Taula 12. HRs ajustats Peu vs no peu en població diabètica (n=85)
 
 
 ```{r HR_FG2, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+dt_temp<-dades
+grup<-"peu_diab2"
+# grup<-"diabetes"
 
 variablesajust<-extreure.variables("vajust3", taulavariables = conductor_variables)
 
 print(paste0("Ajustat per: ", paste0(variablesajust,collapse=", ")))
 
-extreure_HRFG(event="exitus",temps="temps_seguiment",grup="diabetes",covariables = variablesajust) %>% 
+extreure_HRFG(event="exitus",temps="temps_seguiment",grup=grup,covariables = variablesajust,dt=dt_temp) %>% 
   kable(caption="HR de Risc de mortalitat cardiocascular ajustat",digits = 3) %>% kable_styling()
 
-extreure_HRFG(event="exitusCV",temps="temps_seguiment",grup="diabetes",covariables = variablesajust) %>% 
+extreure_HRFG(event="exitusCV",temps="temps_seguiment",grup=grup,covariables = variablesajust,dt=dt_temp) %>% 
   kable(caption="HR de Risc de mortalitat cardiocascular ajustat",digits = 3) %>% kable_styling()
 
-extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV",grup="diabetes",covariables = variablesajust) %>% 
+extreure_HRFG(event="EV_CardV",temps="temps_fins_EVCardV",grup=grup,covariables = variablesajust,dt=dt_temp) %>% 
   kable(caption="HR de Risc d'esdeveniment cardiocascular",digits = 3) %>% kable_styling()
 
-extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE",grup="diabetes",covariables = variablesajust) %>% 
+extreure_HRFG(event="EV_MACE",temps="temps_fins_MACE",grup=grup,covariables = variablesajust,dt=dt_temp) %>% 
   kable(caption="HR Risc de MACE ajustat",digits = 3) %>% kable_styling()
 
-extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup="diabetes",covariables = variablesajust) %>% 
+extreure_HRFG(event="EV_ULC_AMP",temps="temps_fins_ULCAMP",grup=grup,covariables = variablesajust,dt=dt_temp) %>% 
   kable(caption="HR de Risc d'Ulcera o amputació ajustat",digits = 3) %>% kable_styling()
 
 
